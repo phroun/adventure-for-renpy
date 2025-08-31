@@ -738,7 +738,7 @@ screen adventure_interaction():
 # </screen>
 
 # <label>
-label free_movement:
+label adventure_input:
     python:
         if not adventure.roomName in roomData:
             roomData[adventure.roomName] = []
@@ -751,7 +751,7 @@ label free_movement:
     python:
         adventure.result = _return
         if adventure.result == "":
-            renpy.jump("free_movement")
+            renpy.jump("adventure_input")
         else:
             renpy.return_statement(adventure.result);
 # </label>
