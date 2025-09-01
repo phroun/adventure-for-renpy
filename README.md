@@ -40,6 +40,10 @@ MIT License - see [LICENSE](LICENSE) file for details.
 
 ## Changelog
 
+### 0.1.2
+- Moved editing mode features into a separate .rpy file (to exclude from game distributions)
+- Allow Saving and Loading Room Data to/from .rpy file
+
 ### 0.1.1
 - Added To-Do List to README.md
 
@@ -51,7 +55,6 @@ MIT License - see [LICENSE](LICENSE) file for details.
 
 ### Requirements to achieve 1.0:
 
-- Move editing mode features into a separate .rpy file (to exclude from game distributions)
 - Add Verb Options for Polygons
   - Movement Mode Verbs: Go [-/Through/In/Out/Across/Under]
   - Examine Mode Verbs: Look/Read/Taste
@@ -69,7 +72,6 @@ MIT License - see [LICENSE](LICENSE) file for details.
   - Toolbar Radio Buttons
   - Toolbar Checkboxes
   - Toolbar Action Buttons
-- Allow Saving and Loading Room Data to/from .json or .rpy file
 - Add Cascading Flags System (Persistent, Scenes & Rooms)
 - Add Flag Conditionals for Polygons & Overlay Icons
 
