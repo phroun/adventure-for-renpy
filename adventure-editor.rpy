@@ -654,7 +654,7 @@ screen adventure_editor():
             action Function(export_room_data_readable)
             text_size 12
             xpos editor_x
-            ypos 300
+            ypos 320
 
     text "Poly " + str(adventure.polyId + 1) size 15 xpos (editor_x + 50) xanchor 0.5 ypos 140 color "#00cc66"
 
