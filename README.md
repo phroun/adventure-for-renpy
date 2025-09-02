@@ -25,7 +25,8 @@ A module to add point-and-click adventure game support to RenPy.
 label lounge:
     scene bg lounge
     call adventure_input("lounge")
-    "You got [adventure.result]"
+    if player_chooses_to("enter the elevator"):
+        "The elevator door is jammed."
     jump lounge
 ```
 
