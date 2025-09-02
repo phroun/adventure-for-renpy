@@ -113,7 +113,8 @@ default adventure.tag_aliases = {
     # tag list.
     
     "*": {
-      "lift": "elevator",
+      "Elevator": "Lift",
+      "Lift": "Elevator",
       "armor": "armour"
     }
 
@@ -367,11 +368,11 @@ init python:
         # </for>
         return " ".join(canonical_words)
     # </def>
-    
+
     # <def>
     def apply_tag_aliases(these_nouns, tag_aliases, room_name):
         possible_nouns = these_nouns[:]  # Start with a copy of original nouns
-        
+
         # Get aliases to apply - global "*" section plus room-specific
         aliases_to_apply = {}
         # <if>
@@ -382,13 +383,13 @@ init python:
         if room_name in tag_aliases:
             aliases_to_apply.update(tag_aliases[room_name])
         # </if>
-        
+
         # Process each alias rule
         # <for>
         for alias_key, alias_value in aliases_to_apply.items():
             key_has_tilde = alias_key.startswith("~")
             value_has_tilde = alias_value.startswith("~")
-            
+
             # Clean keys/values of tildes for processing
             clean_key = alias_key[1:] if key_has_tilde else alias_key
             clean_value = alias_value[1:] if value_has_tilde else alias_value
@@ -396,18 +397,31 @@ init python:
             # <for>
             for noun in these_nouns[:]:  # Iterate over copy to avoid modification issues
                 matched = False
-                
+
                 # <if>
                 if key_has_tilde:
                     # Check if clean_key is contained as whole words within noun
                     noun_words = noun.split()
+                    noun_words_lower = [word.lower() for word in noun_words]
+                    clean_key_lower = clean_key.lower()
+                    
                     # <if>
-                    if clean_key in noun_words:
+                    if clean_key_lower in noun_words_lower:
                         matched = True
                         # <if>
                         if value_has_tilde:
-                            # Replace the matching portion with clean_value
-                            new_noun = " ".join(clean_value if word == clean_key else word for word in noun_words)
+                            # Replace the matching portion with clean_value, preserving case of non-matching words
+                            new_noun_words = []
+                            # <for>
+                            for word in noun_words:
+                                # <if>
+                                if word.lower() == clean_key_lower:
+                                    new_noun_words.append(clean_value)
+                                else:
+                                    new_noun_words.append(word)
+                                # </if>
+                            # </for>
+                            new_noun = " ".join(new_noun_words)
                             # <if>
                             if new_noun not in possible_nouns:
                                 possible_nouns.append(new_noun)
@@ -421,9 +435,9 @@ init python:
                         # </if value has tilde else>
                     # </if clean_key in noun_words>
                 else:
-                    # Exact match required
+                    # Exact match required (case-insensitive)
                     # <if>
-                    if noun == clean_key:
+                    if noun.lower() == clean_key.lower():
                         matched = True
                         # <if>
                         if clean_value not in possible_nouns:
@@ -435,7 +449,7 @@ init python:
         # </for>
         return possible_nouns
     # </def apply_tag_aliases>
-        
+
     # <def>
     def player_chooses_to(command):
         cmd_words = command.split()
