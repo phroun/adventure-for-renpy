@@ -3,7 +3,7 @@
 **
 **   adventure-editor.rpy - Editor for Adventure Module (for RenPy)
 **
-**   Version 0.1 revision 6
+**   Version 0.1 revision 7
 **
 **************************************************************************
 This module is released under the MIT License:
@@ -34,7 +34,7 @@ DEALINGS IN THE SOFTWARE.
 
 define ADVENTURE_EDITOR_VERSION_MAJOR = 0
 define ADVENTURE_EDITOR_VERSION_MINOR = 1
-define ADVENTURE_EDITOR_VERSION_REVISION = 6
+define ADVENTURE_EDITOR_VERSION_REVISION = 7
 
 define editor_width = 126
 default adventure.editor_last_targids = []
@@ -412,6 +412,16 @@ init python:
     # </def change_say_icon>
 
     # <def>
+    def change_condition():
+        # <if>
+        if adventure.modalFreeze == 0:
+            adventure.editToolMode = 4
+            adventure.screen_should_exit = True
+            renpy.restart_interaction()
+        # </if>
+    # </def change_condition>
+
+    # <def>
     def field_value(field):
         # <if>
         if adventure.interactableId <= len(adventure.room) - 1:
@@ -450,6 +460,11 @@ init python:
             case 3:
                 return "say"
             # </case 3>
+            # <case>
+            case 4:
+                return "condition"
+            # </case 4>
+            # <case>
             case _:
                 return "go"
             # </case default>
@@ -813,10 +828,10 @@ init python:
                     "tag": "",
                     "type": "polygon",
                     "condition": "",
-                    "go": "",
-                    "ex": "",
-                    "op": "",
-                    "say": ""
+                    "go": "*go",
+                    "ex": "*ex",
+                    "op": "*op",
+                    "say": "*say"
             })
             adventure.interactableId = len(adventure.room) - 1
             adventure.pointId = 0
@@ -874,7 +889,12 @@ init python:
         # <if>
         if adventure.modalFreeze == 0:
             adventure.modalFreeze = 1
-            adventure.room[adventure.interactableId][get_edit_tool_mode()] = renpy.call_in_new_context("get_editor_text_inner", "[[*]Verb:", default=adventure.room[adventure.interactableId][get_edit_tool_mode()], length=40)
+            prompt_text = "[[*]Verb:"
+            # <if>
+            if adventure.editToolMode == 4:
+                prompt_text = "Condition Flag(s):"
+            # </if>
+            adventure.room[adventure.interactableId][get_edit_tool_mode()] = renpy.call_in_new_context("get_editor_text_inner", prompt_text, default=adventure.room[adventure.interactableId][get_edit_tool_mode()], length=40)
             adventure.modalFreeze = 0
             adventure.screen_should_exit = True
             renpy.restart_interaction()
@@ -1246,7 +1266,7 @@ screen adventure_editor():
                             #ypos 35
                             ysize 20
 
-                            $ cur_interactabletag = adventure.room[adventure.interactableId]["tag"]
+                            $ cur_interactabletag = adventure_escape_renpy(adventure.room[adventure.interactableId]["tag"])
                             # <if>
                             if cur_interactabletag == "":
                                 text "[[untagged]" size 12 bold True color "#999999" xpos (editor_width // 2) xanchor 0.5 ypos 0
@@ -1411,9 +1431,24 @@ screen adventure_editor():
                             # <button>
                             button:
                                 action NullAction()
-                                background Solid("#666666")  # Transparent
-                                ysize 25
-                                xsize (editor_width - 25*4)
+                                background Solid("#333333")
+                                hover_background Solid("#333333")
+                                xysize (24, 24)
+                                padding (0, 0)
+                                # <add>
+                                add ("images/editor-icons/editor-" + ("un" if field_value("condition") == "" else "") + "checked.png"):
+                                    fit "contain"
+                                    xalign 0.5
+                                    yalign 0.5
+                                # </add>
+                            # </button>
+
+                            # <button>
+                            # button:
+                            #    action NullAction()
+                            #    background Solid("#666666")  # Transparent
+                            #    ysize 25
+                            #    xsize (editor_width - 25*4)
                             # </button>
                         # </hbox>
 
@@ -1502,27 +1537,51 @@ screen adventure_editor():
                             else:
                                 # <button>
                                 button:
-                                    action NullAction()
-                                    background Solid("#666666")  # Transparent
-                                    ysize 25
-                                    xsize (editor_width - 25*4)
+                                    action Function(change_condition)
+                                    tooltip ("Condition")
+                                    background (Solid("#ccffee") if adventure.editToolMode == 4 else Solid("#cccccc"))
+                                    hover_background Solid("#ffffff")
+                                    xysize (24, 24)
+                                    padding (0, 0)
+                                    # <add>
+                                    add "images/editor-icons/editor-mode-condition.png":
+                                        fit "contain"
+                                        xalign 0.5
+                                        yalign 0.5
+                                    # </add>
+                                # </button>
+
+                                # <button>
+                                # button:
+                                #    action NullAction()
+                                #    background Solid("#666666")  # Transparent
+                                #    ysize 25
+                                #    xsize (editor_width - 25*4)
                                 # </button>
                             # </if>
                         # </hbox>
 
+                        # <button>
+                        button:
+                            ypos 4
+                            ysize 8
+                            xsize (editor_width)
+                        # </button>
+
                         # <if>
-                        if adventure.editMode == 1 and vtype == "Verb":
+                        if adventure.editMode == 1 and ((vtype == "Verb") or
+                        (vtype == "Icons" and adventure.editToolMode == 4)):
                             # <button>
                             button:
                                 background create_gradient(editor_width + 6, 20, "#330000", "#660000", "vertical")
                                 hover_background create_gradient(editor_width + 6, 20, "#660000", "#990000", "vertical")
                                 action Function(get_interactable_verb)
-                                tooltip "Set Verb"
+                                tooltip ("Set Condition" if adventure.editToolMode == 4 else "Set Verb")
                                 xfill True
                                 #ypos 35
                                 ysize 20
 
-                                $ cur_verb = adventure.room[adventure.interactableId][get_edit_tool_mode()]
+                                $ cur_verb = adventure_escape_renpy(adventure.room[adventure.interactableId][get_edit_tool_mode()])
                                 text cur_verb size 12 bold False color "#FFFFFF" xpos ((editor_width // 2) - 2) xanchor 0.5 ypos 0
                             # </button>
                         else:

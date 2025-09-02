@@ -43,6 +43,10 @@ MIT License - see [LICENSE](LICENSE) file for details.
 
 ## Changelog
 
+### 0.1.7
+- Added basic parser function:  player_chooses_to()
+- Ability to edit Condition on any Interactable
+
 ### 0.1.6
 - Added Create New Polygon
 - Added Create New Icon
@@ -71,23 +75,26 @@ MIT License - see [LICENSE](LICENSE) file for details.
 
 ### 0.1.0
 - Initial release
-- Supports multiple labeled Polygons per Room
+- Supports multiple tagged Polygons per Room
 
 ## To-Do
 
 ### Requirements to achieve 1.0:
 
-- Add support for a Game Toolbar for Mode Selection
-  - Toolbar Radio Buttons
-  - Toolbar Checkboxes
-  - Toolbar Action Buttons
 - Allow placement of Verb Overlay Icons in addition to Polygons
   - Operate Mode Verbs: Move/Speak/Talk/Hit/Wait/Eat/Taste/Take
   - Examine Mode Verbs: Taste/Look/Look(Hint)/Read(Hint)
   - Allow Active Scenes to Overload a Room+Verb+Label with a Scene Trigger
     - Generate an Error in Advance if Specified Room+Verb+Label is Undefined
+- Add support for a Game Toolbar for Mode Selection
+  - Toolbar Radio Buttons
+  - Toolbar Checkboxes
+  - Toolbar Action Buttons
 - Add Cascading Flags System (Persistent, Scenes & Rooms)
 - Add Flag Conditionals for Polygons & Overlay Icons
+  - Into Editor
+  - Into Click Processing
+- Debug Mode to Force-Override Flag Values
 
 ### Feature Requests:
 

@@ -3,7 +3,7 @@
 **
 **   adventure.rpy - Adventure Module (for RenPy)
 **
-**   Version 0.1 revision 6
+**   Version 0.1 revision 7
 **
 **************************************************************************
 This module is released under the MIT License:
@@ -34,8 +34,11 @@ DEALINGS IN THE SOFTWARE.
 
 define ADVENTURE_VERSION_MAJOR = 0
 define ADVENTURE_VERSION_MINOR = 1
-define ADVENTURE_VERSION_REVISION = 6
+define ADVENTURE_VERSION_REVISION = 7
 
+define ADVENTURE_LOG = DynamicCharacter(">>>", who_color="#999999", what_color="#999999")
+
+default adventure.do_logging = True
 default adventure.iconset = "free-icons"
 default adventure.iconzoom = 0.05
 default adventure.toolbar_position = "right"
@@ -158,6 +161,9 @@ default adventure.editorPos = 0
 default adventure.result = ""
 default adventure.lastRoom = "nowhere"
 default adventure.screen_should_exit = False
+default adventure.targets = []
+default adventure.target_x = -1
+default adventure.target_y = -1
 default adventure._temp_return = ""
 
 # <init>
@@ -203,30 +209,21 @@ init python:
                     # </try>
                     # <if>
                     if not current_handled and current_x > 0 and current_y > 0 and adventure.modalFreeze == 0:
-                        targ = []
+                        adventure.targets = []
                         # <for>
                         for i in range(len(adventure.room)):
                             # <if>
                             if (len(adventure.room[i]["points"]) > 2):
                                 # <if>
                                 if point_in_polygon(adventure.mousex, adventure.mousey, adventure.room[i]["points"]):
-                                    # <if>
-                                    if adventure.room[i]["tag"] != "":
-                                        targ.append(adventure.room[i]["tag"])
-                                    else:
-                                        targ.append("Poly " + str(i))
-                                    # </if>
+                                    adventure.targets.append(i)
                                 # </if>
                             # </if at least 3 points>
                         # </for all polygons in room>
-                        # <if>
-                        if len(targ) > 0:
-                            adventure._temp_return = "*" + "*".join(targ) + "*"
-                            adventure.screen_should_exit = True
-                        else:
-                            adventure._temp_return = "(" + str(adventure.mousex) + "," + str(adventure.mousey) + ")"
-                            adventure.screen_should_exit = True
-                        # </if>
+                        adventure.target_x = adventure.mousex
+                        adventure.target_y = adventure.mousey
+                        adventure._temp_return = "clicked"
+                        adventure.screen_should_exit = True
                         renpy.restart_interaction()
                         raise renpy.IgnoreEvent()
                     # </if valid point and not modalFreeze>
@@ -316,20 +313,207 @@ init python:
     # </def click_mouse_pos>
 
     # <def>
+    def adventure_escape_renpy(text):
+        """Escapes characters with special meaning in Ren'Py text."""
+        # Ren'Py's string interpolation and text tag delimiters
+        text = text.replace('{', '{{')
+        text = text.replace('[', '[[')
+        
+        # Percent sign for variable interpolation
+        text = text.replace('%', '%%')
+        
+        # Handle single and double quotes if needed, though usually unnecessary
+        text = text.replace("'", "\\'")
+        text = text.replace('"', '\\"')
+
+        # The backslash must be escaped last, after other escape sequences are handled.
+        # This replaces a literal backslash with two backslashes.
+        text = text.replace('\\', '\\\\')
+        return text
+    # </def>
+
+    # <def>
     def adventure_init():
+        # <if>
+        if adventure.do_logging:
+            gui.history_allow_tags.update({"b", "i"})
+        # </lif>
+        # <try>
         try:
             store.roomData.update(room_definitions)
         except:
             print("No room data loaded")
+        # </try>
     # </def adventure_init>
+
+    # <def>
+    def canonize_phrase(phrase, aliases):
+        # Split the phrase into words
+        words = phrase.split()
+
+        # Convert each word to canonical form if it exists in aliases
+        canonical_words = []
+        # <for>
+        for word in words:
+            # Check for case-insensitive match in aliases
+            lowercase_word = word.lower()
+            # <if>
+            if lowercase_word in aliases:
+                canonical_words.append(aliases[lowercase_word])
+            else:
+                # Preserve original case if no match found
+                canonical_words.append(word)
+            # </if>
+        # </for>
+        return " ".join(canonical_words)
+    # </def>
     
     # <def>
+    def apply_tag_aliases(these_nouns, tag_aliases, room_name):
+        possible_nouns = these_nouns[:]  # Start with a copy of original nouns
+        
+        # Get aliases to apply - global "*" section plus room-specific
+        aliases_to_apply = {}
+        # <if>
+        if "*" in tag_aliases:
+            aliases_to_apply.update(tag_aliases["*"])
+        # </if>
+        # <if>
+        if room_name in tag_aliases:
+            aliases_to_apply.update(tag_aliases[room_name])
+        # </if>
+        
+        # Process each alias rule
+        # <for>
+        for alias_key, alias_value in aliases_to_apply.items():
+            key_has_tilde = alias_key.startswith("~")
+            value_has_tilde = alias_value.startswith("~")
+            
+            # Clean keys/values of tildes for processing
+            clean_key = alias_key[1:] if key_has_tilde else alias_key
+            clean_value = alias_value[1:] if value_has_tilde else alias_value
+
+            # <for>
+            for noun in these_nouns[:]:  # Iterate over copy to avoid modification issues
+                matched = False
+                
+                # <if>
+                if key_has_tilde:
+                    # Check if clean_key is contained as whole words within noun
+                    noun_words = noun.split()
+                    # <if>
+                    if clean_key in noun_words:
+                        matched = True
+                        # <if>
+                        if value_has_tilde:
+                            # Replace the matching portion with clean_value
+                            new_noun = " ".join(clean_value if word == clean_key else word for word in noun_words)
+                            # <if>
+                            if new_noun not in possible_nouns:
+                                possible_nouns.append(new_noun)
+                            # </if>
+                        else:
+                            # Add clean_value alone
+                            # <if>
+                            if clean_value not in possible_nouns:
+                                possible_nouns.append(clean_value)
+                            # </if>
+                        # </if value has tilde else>
+                    # </if clean_key in noun_words>
+                else:
+                    # Exact match required
+                    # <if>
+                    if noun == clean_key:
+                        matched = True
+                        # <if>
+                        if clean_value not in possible_nouns:
+                            possible_nouns.append(clean_value)
+                        # </if>
+                    # </if noun matches clean_key>
+                # </if key has tilde else>
+            # </for>
+        # </for>
+        return possible_nouns
+    # </def apply_tag_aliases>
+        
+    # <def>
     def player_chooses_to(command):
-        # gather noun list, match longest noun with given command
-        # canonize verb words
-        # gather verb list, match longest verb with given command
-        # return result
-        return
+        cmd_words = command.split()
+        cmdc = " ".join(cmd_words)
+        cmd = cmdc.lower()
+        sentences = []
+        # <for>
+        for tool in adventure.tool_verbs:
+            verbs = adventure.tool_verbs[tool]
+            toolgroup = '*' + tool
+            # <for>
+            for idx in adventure.targets:
+                # <if>
+                if tool in adventure.room[idx]:
+                    group_bits = adventure.room[idx][tool].lower().split("//", 1)
+                    # <if>
+                    if len(group_bits) > 0:
+                        inter_verbs = group_bits[0].split(";")
+                        these_verbs = []
+                        # <for>
+                        for inter_verb in inter_verbs:
+                            # <if>
+                            if inter_verb.startswith('*'):
+                                # expand group to list of verbs
+                                these_verbs.extend(adventure.tool_verbs[inter_verb[1:]])
+                            else:
+                                # <if>
+                                if inter_verb != "":
+                                    these_verbs.append(inter_verb)
+                                # </if>
+                            # </if>
+                        # </for>
+                        these_nouns = []
+                        targ_bits = adventure.room[idx]["tag"].split("//", 1)
+                        # <if>
+                        if len(targ_bits) > 0:
+                            these_nouns.extend(targ_bits[0].split(";"))
+                        # </if>
+                        possible_nouns = apply_tag_aliases(these_nouns, adventure.tag_aliases, adventure.roomName)
+                        # <for>
+                        for verb in these_verbs:
+                            # <for>
+                            for noun in possible_nouns:
+                                canonical_verb = canonize_phrase(verb.lower(), adventure.verb_aliases)
+                                sentences.append((canonical_verb.lower(), noun))
+                            # </for>
+                        # </for groups>
+                    # </if>
+                # </if valid tool>
+            # <for targets>
+        # </for>
+        
+        matches = []
+
+        # <for>
+        for sentence in sentences:
+            verb, noun = sentence
+            # <if>
+            if cmd.endswith(" " + noun.lower()):
+                remainder = cmd[:-(len(noun)+1)]
+                crem = cmdc[:-(len(noun)+1)]
+                print("CONSIDERING", noun, crem)
+                canonical_cmd = canonize_phrase(crem, adventure.verb_aliases)
+                # <if>
+                if canonical_cmd.lower().startswith(verb):
+                    slurry = canonical_cmd[len(verb):]
+                    matches.append(verb + slurry + " " + noun)
+                # <if>
+            # </if ends with noun>
+        # </for>
+
+        print("LOGGING")
+        print(sentences)
+        print("MATCHED", matches)
+
+        logtext = "{b}{i}" + adventure_escape_renpy("verb noun") + "{/i}{/b}"
+        ADVENTURE_LOG.add_history(kind="adv", what=logtext, who=ADVENTURE_LOG.name)
+        return len(matches) != 0
     # </def>
 # </init>
 
