@@ -6,7 +6,7 @@ A module to add point-and-click adventure game support to RenPy.
 
 ## Requirements
 
-- **RenPy 8.4.1 or newer**: A python-infused framework for Visual Novels.
+- **RenPy 7.5 or newer (8.4.1 recommended)**: A python-infused framework for Visual Novels.
 
 ## Features
 
@@ -17,12 +17,8 @@ A module to add point-and-click adventure game support to RenPy.
 ```rpy
 label lounge:
     scene bg lounge
-
-    $ adventure.roomName = "lounge"
-    call adventure_input
-
+    call adventure_input("lounge")
     "You got [adventure.result]"
-
     jump lounge
 ```
 
@@ -40,6 +36,14 @@ MIT License - see [LICENSE](LICENSE) file for details.
 
 ## Changelog
 
+### 0.1.4
+- Added "Play" Icon to Hide Editor Polygons
+- Added Point Editor Mode to Edit Existing Points
+- Added Tool UI Icon to Add a New Polygon
+
+### 0.1.3
+- Allow room parameter to be passed directly to adventure_input() call
+
 ### 0.1.2
 - Moved editing mode features into a separate .rpy file (to exclude from game distributions)
 - Allow Saving and Loading Room Data to/from .rpy file
@@ -55,6 +59,12 @@ MIT License - see [LICENSE](LICENSE) file for details.
 
 ### Requirements to achieve 1.0:
 
+- Add support for a Game Toolbar for Mode Selection
+  - Toolbar Radio Buttons
+  - Toolbar Checkboxes
+  - Toolbar Action Buttons
+- Allow Game Designer to Specify Global or Per-Scene Screens to "Use"
+  - And to Specify to Load either Before or After the Adventure UI
 - Add Verb Options for Polygons
   - Movement Mode Verbs: Go [-/Through/In/Out/Across/Under]
   - Examine Mode Verbs: Look/Read/Taste
@@ -66,24 +76,10 @@ MIT License - see [LICENSE](LICENSE) file for details.
   - Examine Mode Verbs: Taste/Look/Look(Hint)/Read(Hint)
   - Allow Active Scenes to Overload a Room+Verb+Label with a Scene Trigger
     - Generate an Error in Advance if Specified Room+Verb+Label is Undefined
-- Allow Game Designer to Specify Global or Per-Scene Screens to "Use"
-  - And to Specify to Load either Before or After the Adventure UI
-- Add support for a Game Toolbar for Mode Selection
-  - Toolbar Radio Buttons
-  - Toolbar Checkboxes
-  - Toolbar Action Buttons
 - Add Cascading Flags System (Persistent, Scenes & Rooms)
 - Add Flag Conditionals for Polygons & Overlay Icons
 
 ### Feature Requests:
 
-- Hide Polygons & Editor UI when not in Editor Mode
 - Fading Overlay Icons
-- Room List
-- Label List
-- Draw/Play Icon
-- Click Existing Polygon to Switch Polygons
-- New Icon to Add New Polygon
-- Points Icon to Edit Existing Points
-- Checkmark Button to Finish Editing Points
 - Visible Polygon Labels

@@ -3,7 +3,7 @@
 **
 **   adventure.rpy - Adventure Module (for RenPy)
 **
-**   Version 0.1 revision 2
+**   Version 0.1 revision 4
 **
 **************************************************************************
 This module is released under the MIT License:
@@ -34,7 +34,7 @@ DEALINGS IN THE SOFTWARE.
 
 define ADVENTURE_VERSION_MAJOR = 0
 define ADVENTURE_VERSION_MINOR = 1
-define ADVENTURE_VERSION_REVISION = 2
+define ADVENTURE_VERSION_REVISION = 4
 
 default roomData = {}
 default adventure.room = []
@@ -44,13 +44,16 @@ default adventure.modalFreeze = 0
 default adventure.mousex = -1
 default adventure.mousey = -1
 default adventure.editMode = 0
-default adventure.polyId = 0
+default adventure.interactableId = 0
 default adventure.editorPos = 0
 default adventure.result = ""
+default adventure.iconset = "free-icons"
+default adventure.iconzoom = 0.05
 default adventure.lastRoom = "nowhere"
 default adventure.screen_should_exit = False
 default adventure._temp_return = ""
-    
+
+# <init>
 init python:
     import math
     import pygame
@@ -59,22 +62,29 @@ init python:
     import math
 
     build.classify('game/adventure-editor.rpy', None)
+    build.classify('game/adventure-editor.rpyc', None)
+    build.classify('images/editor-icons/**', None)
 
     # <class>
     class getMousePosition(renpy.Displayable):
 
+        # <def>
         def __init__(self):
             renpy.Displayable.__init__(self)
+        # </def __init__>
 
+        # <def>
         def event(self, ev, x, y, st):
             import pygame
-
+            # <if>
             if ev.type == pygame.MOUSEBUTTONDOWN:
+                # <if>
                 if ev.button == 1:
                     adventure.mousex = x
                     adventure.mousey = y
                     current_x = adventure.mousex
                     current_y = adventure.mousey
+                    # <try>
                     try:
                         print("before mouse")
                         current_handled = adventure_editor_mouse(adventure.mousex, adventure.mousey)
@@ -85,20 +95,30 @@ init python:
                     except:
                         current_handled = False
                         adventure.editing = False
-
+                    # </try>
+                    # <if>
                     if not current_handled and current_x > 0 and current_y > 0 and adventure.modalFreeze == 0:
                         print("doing other handler")
                         targ = []
+                        # <for>
                         for i in range(len(adventure.room)):
+                            # <if>
                             if (len(adventure.room[i]["points"]) > 2):
-                              print(adventure.room[i]["points"])
-                              if point_in_polygon(adventure.mousex, adventure.mousey, adventure.room[i]["points"]):
-                                  if adventure.room[i]["label"] != "":
-                                      targ.append(adventure.room[i]["label"])
-                                  else:
-                                      targ.append("Poly " + str(i))
-                              else:
-                                  print("Point OUTSIDE")
+                                print(adventure.room[i]["points"])
+                                # <if>
+                                if point_in_polygon(adventure.mousex, adventure.mousey, adventure.room[i]["points"]):
+                                    # <if>
+                                    if adventure.room[i]["tag"] != "":
+                                        targ.append(adventure.room[i]["tag"])
+                                    else:
+                                        targ.append("Poly " + str(i))
+                                    # </if>
+                                else:
+                                    print("Point OUTSIDE")
+                                # </if>
+                            # </if at least 3 points>
+                        # </for all polygons in room>
+                        # <if>
                         if len(targ) > 0:
                             adventure._temp_return = "*" + "*".join(targ) + "*"
                             adventure.screen_should_exit = True
@@ -107,11 +127,18 @@ init python:
                             adventure._temp_return = "(" + str(adventure.mousex) + "," + str(adventure.mousey) + ")"
                             adventure.screen_should_exit = True
                             print("SHOULD EXIT DEFAULT")
+                        # </if>
                         renpy.restart_interaction()
                         raise renpy.IgnoreEvent()
+                    # </if valid point and not modalFreeze>
+                # </if button=1>
+            # </if MOUSEBUTTONDOWN>
+        # </def event>
 
+        # <def>
         def render(self, width, height, st, at):
             return renpy.Render(1, 1)
+        # </def render>
     # </class>
 
     # Initialize the mouse position variables
@@ -129,34 +156,47 @@ init python:
         Returns:
             True if point is inside polygon, False otherwise
         """
+
+        # <if>
         if len(points) < 3:
             return False
+        # </if>
         
         n = len(points)
         inside = False
         
         p1x, p1y = points[0]
+        # <for>
         for i in range(1, n + 1):
             p2x, p2y = points[i % n]
-            
+            # <if>
             if y > min(p1y, p2y):
+                # <if>
                 if y <= max(p1y, p2y):
+                    # <if>
                     if x <= max(p1x, p2x):
+                        # <if>
                         if p1y != p2y:
                             xinters = (y - p1y) * (p2x - p1x) / (p2y - p1y) + p1x
+                        # </if>
+                        # <if>
                         if p1x == p2x or x <= xinters:
                             inside = not inside
+                        # </if>
+                    # </if x le>
+                # </if y le>
+            # </if y gt>
             p1x, p1y = p2x, p2y
-        
+        # </for>
         return inside
-    # </def>
+    # </def point_in_polygon>
 
     # <def>
     def checkEvent():
         # Create text showing the actual coordinates
         coordinates_text = "Mouse: ({}, {})".format(adventure.mousex, adventure.mousey)
         return Text(coordinates_text, color="#FF0000", size=30)
-    # </def>
+    # </def checkEvent>
 
     config.overlay_functions.append(checkEvent)
     
@@ -166,7 +206,7 @@ init python:
         pos = renpy.get_mouse_pos()
         adventure.mousex = pos[0]
         adventure.mousey = pos[1]
-    # </def>
+    # </def update_mouse_pos>
 
     # <def>    
     def click_mouse_pos():
@@ -174,7 +214,7 @@ init python:
         adventure.mousex = pos[0]
         adventure.mousey = pos[1]
         print("Screen click at: ({}, {})".format(pos[0], pos[1]))
-    # </def>
+    # </def click_mouse_pos>
 
     # <def>
     def adventure_init():
@@ -182,16 +222,18 @@ init python:
             store.roomData.update(room_definitions)
         except:
             print("No room data loaded")
-    # </def>
+    # </def adventure_init>
+# </init>
 
 # <screen>
 screen adventure_editor():
     pass
-# </screen>
+# </screen adventire_editor>
 
 # <screen>
 screen adventure_interaction():
 
+    # <if>
     if adventure.screen_should_exit and adventure.modalFreeze == 0 and adventure._temp_return:
         $ adventure.screen_should_exit = False  # Reset flag
         $ adventure.actual_return = adventure._temp_return if hasattr(adventure, '_temp_return') else None
@@ -199,33 +241,39 @@ screen adventure_interaction():
         $ adventure._temp_return = None
         $ Return(adventure.actual_return)
         timer 0.01 action Return(adventure.actual_return)
+    # </if _temp_return and no modalFreeze>
+
+    add (adventure.iconset + "/verb-move.png") zoom adventure.iconzoom xpos 300 ypos 300
 
     # Add your mouse position tracker
     add mousePosition
     use adventure_editor
 
-# </screen>
+# </screen adventure_interaction>
 
 # <label>
-label adventure_input:
+label adventure_input(room):
+    # <python>
     python:
+        adventure.roomName = room
         adventure_init()
-#       try:
-#           adventure_editor_input()
-#       except:
-#           adventure.editing = False
         if not adventure.roomName in roomData:
             roomData[adventure.roomName] = []
         adventure.room = roomData[adventure.roomName]
         adventure.screen_should_exit = False
         adventure.result = ""
+    # </python>
 
     call screen adventure_interaction
 
+    # <python>
     python:
         adventure.result = _return
+        # <if>
         if adventure.result == "":
             renpy.jump("adventure_input")
         else:
             renpy.return_statement(adventure.result);
+        # </if>
+    # </python>
 # </label>
