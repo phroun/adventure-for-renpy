@@ -324,12 +324,13 @@ init python:
     # </def adventure_init>
     
     # <def>
-    def player_chooses_to(command) {
+    def player_chooses_to(command):
         # gather noun list, match longest noun with given command
         # canonize verb words
         # gather verb list, match longest verb with given command
         # return result
-    }
+        return
+    # </def>
 # </init>
 
 # <screen>
