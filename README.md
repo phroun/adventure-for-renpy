@@ -11,6 +11,13 @@ A module to add point-and-click adventure game support to RenPy.
 ## Features
 
 - **Clickable Zones**: Define multiple clickable zones per room.
+- **Editor UI**: Presence of adventure-editor.rpy (not shipped in build) enables editor UI.
+- **Tool Groups for Verbs**:
+  - Movement Mode Verbs: Go [-/Through/In/Out/Across]
+  - Examine Mode Verbs: Look/Read/Taste/Listen/Smell
+  - Operate Mode Verbs: Use/Open/Close/Touch
+  - Speak Mode Verbs: Talk To/Speak/Ask
+  - Auto-Operate Mode Verbs: Move Mode Verbs + Operate Mode Verbs + (Non-Icon) Examine Mode Verbs
 
 ## Quick Start
 
@@ -36,6 +43,17 @@ MIT License - see [LICENSE](LICENSE) file for details.
 
 ## Changelog
 
+### 0.1.6
+- Added Create New Polygon
+- Added Create New Icon
+- Added Delete option in Point Editor
+- Added Verb Editor for Polygons
+  - (Prefix with * to invoke an entire verb group)
+
+### 0.1.5
+- Added adventure_overlay and adventure_underlay screens
+  - (to be redefined by game authors who need advanced customization)
+  
 ### 0.1.4
 - Added "Play" Icon to Hide Editor Polygons
 - Added Point Editor Mode to Edit Existing Points
@@ -63,16 +81,8 @@ MIT License - see [LICENSE](LICENSE) file for details.
   - Toolbar Radio Buttons
   - Toolbar Checkboxes
   - Toolbar Action Buttons
-- Allow Game Designer to Specify Global or Per-Scene Screens to "Use"
-  - And to Specify to Load either Before or After the Adventure UI
-- Add Verb Options for Polygons
-  - Movement Mode Verbs: Go [-/Through/In/Out/Across/Under]
-  - Examine Mode Verbs: Look/Read/Taste
-  - Operate Mode Verbs: Use/Open/Close/Touch
-  - Speak Mode Verbs: Talk To/Speak/Ask
-  - Auto-Operate Mode Verbs: Move Mode + Operate Mode + Examine Mode
 - Allow placement of Verb Overlay Icons in addition to Polygons
-  - Operate Mode Verbs: Move/Speak/Talk/Hit/Wait/Eat/Taste/Hit/Take
+  - Operate Mode Verbs: Move/Speak/Talk/Hit/Wait/Eat/Taste/Take
   - Examine Mode Verbs: Taste/Look/Look(Hint)/Read(Hint)
   - Allow Active Scenes to Overload a Room+Verb+Label with a Scene Trigger
     - Generate an Error in Advance if Specified Room+Verb+Label is Undefined

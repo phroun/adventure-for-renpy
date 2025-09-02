@@ -3,7 +3,7 @@
 **
 **   adventure-editor.rpy - Editor for Adventure Module (for RenPy)
 **
-**   Version 0.1 revision 4
+**   Version 0.1 revision 6
 **
 **************************************************************************
 This module is released under the MIT License:
@@ -34,12 +34,13 @@ DEALINGS IN THE SOFTWARE.
 
 define ADVENTURE_EDITOR_VERSION_MAJOR = 0
 define ADVENTURE_EDITOR_VERSION_MINOR = 1
-define ADVENTURE_EDITOR_VERSION_REVISION = 4
+define ADVENTURE_EDITOR_VERSION_REVISION = 6
 
 define editor_width = 126
 default adventure.editor_last_targids = []
 default adventure.pointId = 0
 default adventure.pointMode = 0
+default adventure.editToolMode = 0
 
 # <init>
 init python:
@@ -331,32 +332,209 @@ init python:
 
     # <def>
     def set_play_mode():
-        adventure.editMode = 0
-        adventure.screen_should_exit = True
-        renpy.restart_interaction()
+        # <if>
+        if adventure.modalFreeze == 0:
+            adventure.editMode = 0
+            adventure.screen_should_exit = True
+            renpy.restart_interaction()
+        # </if>
     # </def set_play_mode>
 
     # <def>
     def set_select_mode():
-        adventure.editMode = 1
-        adventure.screen_should_exit = True
-        renpy.restart_interaction()
+        # <if>
+        if adventure.modalFreeze == 0:
+            adventure.editMode = 1
+            adventure.screen_should_exit = True
+            renpy.restart_interaction()
+        # </if>
     # </def set_select_mode>
 
     # <def>
     def set_pointedit_mode():
-        adventure.editMode = 2
-        adventure.pointMode = 0
-        adventure.screen_should_exit = True
-        renpy.restart_interaction()
+        # <if>
+        if adventure.modalFreeze == 0:
+            adventure.editMode = 2
+            adventure.pointMode = 0
+            adventure.screen_should_exit = True
+            renpy.restart_interaction()
+        # </if>
     # </def set_pointedit_mode>
 
     # <def>
     def set_pointmode():
-        adventure.pointMode = 1 - adventure.pointMode
-        adventure.screen_should_exit = True
-        renpy.restart_interaction()
+        # <if>
+        if adventure.modalFreeze == 0:
+            adventure.pointMode = 1 - adventure.pointMode
+            adventure.screen_should_exit = True
+            renpy.restart_interaction()
+        # </if>
     # </def set_pointmode>
+
+    # <def>
+    def change_go_icon():
+        # <if>
+        if adventure.modalFreeze == 0:
+            adventure.editToolMode = 0
+            adventure.screen_should_exit = True
+            renpy.restart_interaction()
+        # </if>
+    # </def change_go_icon>
+
+    # <def>
+    def change_ex_icon():
+        # <if>
+        if adventure.modalFreeze == 0:
+            adventure.editToolMode = 1
+            adventure.screen_should_exit = True
+            renpy.restart_interaction()
+        # </if>
+    # </def change_ex_icon>
+
+    # <def>
+    def change_op_icon():
+        # <if>
+        if adventure.modalFreeze == 0:
+            adventure.editToolMode = 2
+            adventure.screen_should_exit = True
+            renpy.restart_interaction()
+        # </if>
+    # </def change_op_icon>
+
+    # <def>
+    def change_say_icon():
+        # <if>
+        if adventure.modalFreeze == 0:
+            adventure.editToolMode = 3
+            adventure.screen_should_exit = True
+            renpy.restart_interaction()
+        # </if>
+    # </def change_say_icon>
+
+    # <def>
+    def field_value(field):
+        # <if>
+        if adventure.interactableId <= len(adventure.room) - 1:
+            this_interactable = adventure.room[adventure.interactableId]
+            # <if>
+            if this_interactable[field] == "":
+                return ""
+            else:
+                # <if>
+                if this_interactable[field][0] == "/":
+                    return ""
+                else:
+                    return this_interactable[field]
+                # </if>
+            # </if>
+        # </if>
+    # </def>
+
+    # <def>
+    def get_edit_tool_mode():
+        # <match>
+        match adventure.editToolMode:
+            # <case>
+            case 0:
+                return "go"
+            # </case 0>
+            # <case>
+            case 1:
+                return "ex"
+            # </case 1>
+            # <case>
+            case 2:
+                return "op"
+            # </case 2>
+            # <case>
+            case 3:
+                return "say"
+            # </case 3>
+            case _:
+                return "go"
+            # </case default>
+        # </match>        
+    # </def>
+
+    # <def>
+    def get_active_verb_field():
+        # <if>
+        if adventure.interactableId <= len(adventure.room) - 1:
+            return adventure.room[adventure.interactableId][get_edit_tool_mode()]
+        else:
+            return ""
+    # </def>
+
+    # <def>
+    def toggle_check_icon(field, default):
+        # <if>
+        if adventure.interactableId <= len(adventure.room) - 1:
+            this_interactable = adventure.room[adventure.interactableId]
+            # <if>
+            if this_interactable[field] == "":
+                this_interactable[field] = default
+            else:
+                # <if>
+                if this_interactable[field][0] == "/":
+                    # <while>
+                    while this_interactable[field][0] == "/":
+                        this_interactable[field] = this_interactable[field][1:]
+                    # </while>
+                else:
+                    # <if>
+                    if this_interactable[field] == default:
+                        this_interactable[field] = ""
+                    else:
+                        this_interactable[field] = "//" + this_interactable[field]
+                    # </if default else>
+                # </if commented else>
+            # </if blank else>
+        # </if valid interactable>
+    # </def>
+    
+    # <def>
+    def toggle_go_icon():
+        # <if>
+        if adventure.modalFreeze == 0:
+            adventure.editToolMode = 0
+            adventure.screen_should_exit = True
+            toggle_check_icon("go", "*go")
+            renpy.restart_interaction()
+        # </if>
+    # </def toggle_go_icon>
+
+    # <def>
+    def toggle_ex_icon():
+        # <if>
+        if adventure.modalFreeze == 0:
+            adventure.editToolMode = 1
+            adventure.screen_should_exit = True
+            toggle_check_icon("ex", "*ex")
+            renpy.restart_interaction()
+        # </if>
+    # </def toggle_ex_icon>
+
+    # <def>
+    def toggle_op_icon():
+        # <if>
+        if adventure.modalFreeze == 0:
+            adventure.editToolMode = 2
+            adventure.screen_should_exit = True
+            toggle_check_icon("op", "*op")
+            renpy.restart_interaction()
+        # </if>
+    # </def toggle_op_icon>
+
+    # <def>
+    def toggle_say_icon():
+        # <if>
+        if adventure.modalFreeze == 0:
+            adventure.editToolMode = 3
+            adventure.screen_should_exit = True
+            toggle_check_icon("say", "*say")
+            renpy.restart_interaction()
+        # </if>
+    # </def toggle_say_icon>
 
     # <def>
     def delete_point():
@@ -377,18 +555,21 @@ init python:
     # <def>
     def delete_interactable():
         # <if>
-        if adventure.interactableId > 0 or len(adventure.room) > 0:
-            del adventure.room[adventure.interactableId]
+        if adventure.modalFreeze == 0:
             # <if>
-            if adventure.interactableId > 0:
-                adventure.interactableId -= 1
-            else:
-                adventure.interactableId = 0
+            if adventure.interactableId > 0 or len(adventure.room) > 0:
+                del adventure.room[adventure.interactableId]
+                # <if>
+                if adventure.interactableId > 0:
+                    adventure.interactableId -= 1
+                else:
+                    adventure.interactableId = 0
+                # </if>
             # </if>
+            adventure.editMode = 1
+            adventure.screen_should_exit = True
+            renpy.restart_interaction()
         # </if>
-        adventure.editMode = 1
-        adventure.screen_should_exit = True
-        renpy.restart_interaction()
     # </def deleter_interactable>
 
     # <class>
@@ -510,44 +691,28 @@ init python:
     def adventure_editor_mouse(current_x, current_y):
         # Debug print to console
         current_mode = adventure.editMode
-        print("EDITOR - Click detected at: ({}, {}) mode {}".format(current_x, current_y, current_mode))
-        # <while>
-        while len(adventure.room) <= adventure.interactableId:
-            adventure.room.append({
-                "points": [],
-                "tag": "",
-                "type": "polygon",
-                "condition": "",
-                "go": "",
-                "ex": "",
-                "op": "",
-                "say": ""
-            })
-        # </while>
-        
         # <if>
         if current_x > 0 and current_y > 0 and adventure.modalFreeze == 0:
             # <match>
             match current_mode:
                 # <case>
                 case 1: # Select Select Tool
-                    print("doing other handler")
                     targids = []
                     # <for>
                     for i in range(len(adventure.room)):
                         # <if>
-                        if (len(adventure.room[i]["points"]) > 2):
-                            print(adventure.room[i]["points"])
+                        if (len(adventure.room[i]["points"]) > 2) and adventure.room[i]["type"] == "polygon":
                             # <if>
                             if point_in_polygon(adventure.mousex, adventure.mousey, adventure.room[i]["points"]):
                                 targids.append(i)
                             # </if>
-                        # </if at least 3 points>
-                    # </for all polygons in room>
+                        # </if polygon and at least 3 points>
+                    # </for all interactables in room>
                     # <if>
                     if len(targids) > 0:
                         # <if>
-                        if targids == adventure.editor_last_targids:
+                        if adventure.interactableId in targids:
+                            # if targids == adventure.editor_last_targids:
                             # cycle to next item
                             adventure.interactableId = targids[(targids.index(adventure.interactableId) + 1) % len(targids)]
                         else:
@@ -562,7 +727,8 @@ init python:
                 case 2: # Edit Point Tool
                     print("Collecting Point")
                     # <if>
-                    if adventure.pointMode == 1 or len(adventure.room[adventure.interactableId]["points"]) == 0:
+                    this_interactable = adventure.room[adventure.interactableId]
+                    if (adventure.pointMode == 1 and this_interactable["type"] == "polygon") or len(this_interactable["points"]) == 0:
                         adventure.room[adventure.interactableId]["points"].insert(adventure.pointId + 1, (current_x, current_y))
                         adventure.pointId += 1
                         # <if>
@@ -615,7 +781,7 @@ init python:
         if adventure.interactableId > 0:
              adventure.interactableId -= 1
         else:
-             adventure.interactableId = len(adventure.room) - 1
+             adventure.interactableId = max(0, len(adventure.room) - 1)
         # </if>
         adventure.pointId = 0
         store.roomData[adventure.roomName] = adventure.room
@@ -627,7 +793,7 @@ init python:
     def nextInteractable():
         adventure.mousex = -1
         # <if>
-        if adventure.interactableId == len(adventure.room) - 1:
+        if adventure.interactableId >= len(adventure.room) - 1:
             adventure.interactableId = 0
         else:
             adventure.interactableId += 1
@@ -640,27 +806,52 @@ init python:
     
     # <def>
     def create_new_polygon():
-        adventure.room.append({
-                "points": [],
-                "tag": "",
-                "type": "polygon",
-                "condition": "",
-                "go": "",
-                "ex": "",
-                "op": "",
-                "say": ""
-        })
-        adventure.interactableId = len(adventure.room) - 1
-        adventure.pointId = 0
-        adventure.pointMode = 1
-        adventure.editMode = 2
-        adventure.screen_should_exit = True
-        renpy.restart_interaction()
+        # <if>
+        if adventure.modalFreeze == 0:
+            adventure.room.append({
+                    "points": [],
+                    "tag": "",
+                    "type": "polygon",
+                    "condition": "",
+                    "go": "",
+                    "ex": "",
+                    "op": "",
+                    "say": ""
+            })
+            adventure.interactableId = len(adventure.room) - 1
+            adventure.pointId = 0
+            adventure.pointMode = 1
+            adventure.editMode = 2
+            adventure.screen_should_exit = True
+            renpy.restart_interaction()
+        # </if>
     # </def create_new_polygon>
+
+    # <def>
+    def create_new_icon():
+        # <if>
+        if adventure.modalFreeze == 0:
+            adventure.room.append({
+                    "points": [],
+                    "tag": "",
+                    "type": "icon",
+                    "condition": "",
+                    "go": "",
+                    "ex": "",
+                    "op": "",
+                    "say": ""
+            })
+            adventure.interactableId = len(adventure.room) - 1
+            adventure.pointId = 0
+            adventure.pointMode = 0
+            adventure.editMode = 2
+            adventure.screen_should_exit = True
+            renpy.restart_interaction()
+        # </if>
+    # </def create_new_icon>
     
     # <def>
     def toggle_editor_pos():
-        print("TOGGLE EDITOR POS")
         adventure.editorPos = 1 - adventure.editorPos
         adventure.screen_should_exit = True
         renpy.restart_interaction()
@@ -671,7 +862,19 @@ init python:
         # <if>
         if adventure.modalFreeze == 0:
             adventure.modalFreeze = 1
-            adventure.room[adventure.interactableId]["tag"] = renpy.call_in_new_context("get_interactable_tag_inner", "Tag:", default=adventure.room[adventure.interactableId]["tag"], length=40)
+            adventure.room[adventure.interactableId]["tag"] = renpy.call_in_new_context("get_editor_text_inner", "Tag:", default=adventure.room[adventure.interactableId]["tag"], length=40)
+            adventure.modalFreeze = 0
+            adventure.screen_should_exit = True
+            renpy.restart_interaction()
+        # </if>
+    # </def get_interactable_tag>
+
+    # <def>
+    def get_interactable_verb():
+        # <if>
+        if adventure.modalFreeze == 0:
+            adventure.modalFreeze = 1
+            adventure.room[adventure.interactableId][get_edit_tool_mode()] = renpy.call_in_new_context("get_editor_text_inner", "[[*]Verb:", default=adventure.room[adventure.interactableId][get_edit_tool_mode()], length=40)
             adventure.modalFreeze = 0
             adventure.screen_should_exit = True
             renpy.restart_interaction()
@@ -704,21 +907,68 @@ init python:
     # </def>
 
     # <def>
+    def get_interactable_type():
+        # <if>
+        if 0 <= adventure.interactableId <= len(adventure.room) - 1:
+            return adventure.room[adventure.interactableId]["type"]
+        else:
+            return "none"
+        # </if>
+    # </def get_interactable_type>
+
+    # <def>
+    def interactable_type_text(inter):
+        # <match>
+        match inter:
+            # <case>
+            case "polygon":
+                return "Poly"
+            case "icon":
+                return "Icon"
+            case "none":
+                return "None"
+            case _:
+                return "Unkn"
+            # </case>
+        # </match>
+    # </def interactable_type_text>
+
+    # <def>
     def get_mode_text(mode):
         # <match>
         match mode:
             # <case>
             case 0:
                 return "Play Game"
+            # </case 0>
+            # <case>
             case 1:
                 return "Select Interactables"
+            # </case 1>
+            # <case>
             case 2:
-                return "Edit Points"
+                # <match>
+                match get_interactable_type():
+                    # <case>
+                    case "polygon":
+                        return "Edit Points"
+                    # </case polygon>
+                    # <case>
+                    case "icon":
+                        return "Reposition Icon"
+                    # </case icon>
+                    # <case>
+                    case _:
+                        return "Unknown"
+                    # </case default>
+                # </match>
+            # </case 2>
+            # <case>
             case _:
                 return "Unknown"
             # </case>
         # </match>
-    # </def>
+    # </def get_mode_text>
 
     # <def>
     def export_room_data_readable():
@@ -769,11 +1019,11 @@ init python:
     # </def export_room_data_readable>
 
 # <label>
-label get_interactable_tag_inner(prompt, default, length=20):
+label get_editor_text_inner(prompt, default, length=20):
   show screen adventure_interaction
   $ result = renpy.input(prompt, default, length=length)
   return result
-# </label get_interactable_tag_inner>
+# </label get_editor_text_inner>
 
 # <screen>
 screen adventure_editor():
@@ -789,14 +1039,7 @@ screen adventure_editor():
             adventure.lastRoom = adventure.roomName
         # </if>
         editor_x = 20 if (adventure.editorPos == 0) else (config.screen_width - (editor_width + 20))
-        # <while>
-        while len(adventure.room) <= adventure.interactableId:
-            adventure.room.append({ "points": [], "tag": "", "type": "polygon", "condition": "", "go": "", "ex": "", "op": "", "say": "" })
-        # </while>
     # </python>
-
-    $ print(adventure.room)
-    $ print(adventure.interactableId)
 
     # <if>
     if adventure.editMode != 0:
@@ -819,7 +1062,7 @@ screen adventure_editor():
         # </for>
 
         # <if>
-        if len(adventure.room[adventure.interactableId]["points"]) >= 1:
+        if len(adventure.room) > 0 and len(adventure.room[adventure.interactableId]["points"]) >= 1:
             $ current_polygon = AlphaPolygon(adventure.room[adventure.interactableId]["points"], (255, 0, 0, 128))
             # show expression current_polygon as curent_poly
             add current_polygon
@@ -960,7 +1203,7 @@ screen adventure_editor():
                         # </button>
                         # <button>
                         button:
-                            action NullAction()
+                            action Function(create_new_icon)
                             tooltip "Create New Interaction Icon"
                             background Solid("#cccccc")
                             hover_background Solid("#ffffff")
@@ -992,7 +1235,7 @@ screen adventure_editor():
                         # </button>
                     # </hbox> 
                     # <if>
-                    if adventure.editMode > 0:
+                    if adventure.editMode > 0 and len(adventure.room) > 0:
                         # <button>
                         button:
                             background create_gradient(editor_width + 6, 20, "#330000", "#660000", "vertical")
@@ -1028,27 +1271,96 @@ screen adventure_editor():
                         xfill True
                         ysize 30
                     # </button>
-
                     # <if>
-                    if adventure.editMode == 2:
+                    if get_interactable_type() == "polygon":
+                        # <if>
+                        if adventure.editMode == 2:
+                            # <hbox>
+                            # Tool icons section - horizontal layout
+                            hbox:
+                                spacing 2  # Space between icons
+                                xpos 2    # Position from left edge
+                                ypos 2    # Position from top edge
+                                # <button>
+                                button:
+                                    action Function(set_pointmode)
+                                    tooltip "New Point After"
+                                    background (Solid("#ff3333") if adventure.pointMode == 1 else Solid("#cccccc"))
+                                    hover_background (Solid("#ffcc33") if adventure.pointMode == 1 else Solid("#ffffff"))
+                                    xysize (24, 24)  # Size of the button
+                                    padding (0, 0)   # Internal padding
+                                    
+                                    # <add>
+                                    add "images/editor-icons/editor-new-point.png":
+                                        fit "contain"
+                                        xalign 0.5
+                                        yalign 0.5
+                                    # </add>
+                                # </button>
+                                # <button>
+                                button:
+                                    action Function(delete_point)
+                                    tooltip "Delete This Point"
+                                    background Solid("#cccccc")
+                                    hover_background Solid("#ffffff")
+                                    xysize (24, 24)  # Size of the button
+                                    padding (0, 0)   # Internal padding
+                                    
+                                    # <add>
+                                    add "images/editor-icons/editor-delete-point.png":
+                                        fit "contain"
+                                        xalign 0.5
+                                        yalign 0.5
+                                    # </add>
+                                # </button>
+                                # <button>
+                                button:
+                                    action NullAction()
+                                    background Solid("#666666")  # Transparent
+                                    ysize 25
+                                    xsize (editor_width - 25*3) - 1
+                                # </button>
+                                # <button>
+                                button:
+                                    action Function(delete_interactable)
+                                    tooltip "Delete This Polygon"
+                                    background Solid("#cccccc")
+                                    hover_background Solid("#ffffff")
+                                    xysize (24, 24)
+                                    padding (0, 0)
+                                    
+                                    # <add>
+                                    add "images/editor-icons/editor-delete-polygon.png":
+                                        fit "contain"
+                                        xalign 0.5
+                                        yalign 0.5
+                                    # </add>
+                                # </button>
+                            # </hbox>
+                        # </if editMode 2>
+                    # </if polygon>
+                    # <if>
+                    if (
+                        (get_interactable_type() == "icon" and adventure.editMode > 0)
+                        or
+                        (get_interactable_type() == "polygon" and adventure.editMode == 1)
+                    ):
+                        $ vtype = "Icons" if get_interactable_type() == "icon" else "Verb"
+
                         # <hbox>
-                        # Tool icons section - horizontal layout
                         hbox:
                             spacing 2  # Space between icons
                             xpos 2    # Position from left edge
                             ypos 2    # Position from top edge
-
                             # <button>
                             button:
-                                action Function(set_pointmode)
-                                tooltip "New Point After"
-                                background (Solid("#ff3333") if adventure.pointMode == 1 else Solid("#cccccc"))
-                                hover_background (Solid("#ffcc33") if adventure.pointMode == 1 else Solid("#ffffff"))
-                                xysize (24, 24)  # Size of the button
-                                padding (0, 0)   # Internal padding
-                                
+                                action Function(toggle_go_icon)
+                                background Solid("#333333")
+                                hover_background Solid("#999999")
+                                xysize (24, 24)
+                                padding (0, 0)
                                 # <add>
-                                add "images/editor-icons/editor-new-point.png":
+                                add ("images/editor-icons/editor-" + ("un" if field_value("go") == "" else "") + "checked.png"):
                                     fit "contain"
                                     xalign 0.5
                                     yalign 0.5
@@ -1056,15 +1368,41 @@ screen adventure_editor():
                             # </button>
                             # <button>
                             button:
-                                action Function(delete_point)
-                                tooltip "Delete This Point"
-                                background Solid("#cccccc")
-                                hover_background Solid("#ffffff")
-                                xysize (24, 24)  # Size of the button
-                                padding (0, 0)   # Internal padding
-                                
+                                action Function(toggle_ex_icon)
+                                background Solid("#333333")
+                                hover_background Solid("#999999")
+                                xysize (24, 24)
+                                padding (0, 0)
                                 # <add>
-                                add "images/editor-icons/editor-delete-point.png":
+                                add ("images/editor-icons/editor-" + ("un" if field_value("ex") == "" else "") + "checked.png"):
+                                    fit "contain"
+                                    xalign 0.5
+                                    yalign 0.5
+                                # </add>
+                            # </button>
+                            # <button>
+                            button:
+                                action Function(toggle_op_icon)
+                                background Solid("#333333")
+                                hover_background Solid("#999999")
+                                xysize (24, 24)
+                                padding (0, 0)
+                                # <add>
+                                add ("images/editor-icons/editor-" + ("un" if field_value("op") == "" else "") + "checked.png"):
+                                    fit "contain"
+                                    xalign 0.5
+                                    yalign 0.5
+                                # </add>
+                            # </button>
+                            # <button>
+                            button:
+                                action Function(toggle_say_icon)
+                                background Solid("#333333")
+                                hover_background Solid("#999999")
+                                xysize (24, 24)
+                                padding (0, 0)
+                                # <add>
+                                add ("images/editor-icons/editor-" + ("un" if field_value("say") == "" else "") + "checked.png"):
                                     fit "contain"
                                     xalign 0.5
                                     yalign 0.5
@@ -1075,26 +1413,129 @@ screen adventure_editor():
                                 action NullAction()
                                 background Solid("#666666")  # Transparent
                                 ysize 25
-                                xsize 50
+                                xsize (editor_width - 25*4)
                             # </button>
+                        # </hbox>
+
+                        # <hbox>
+                        hbox:
+                            spacing 2  # Space between icons
+                            xpos 2    # Position from left edge
+                            ypos 2    # Position from top edge
                             # <button>
                             button:
-                                action Function(delete_interactable)
-                                tooltip "Delete This Polygon"
-                                background Solid("#cccccc")
+                                action Function(change_go_icon)
+                                tooltip ("Go Tool " + vtype)
+                                background (Solid("#ccffee") if adventure.editToolMode == 0 else Solid("#cccccc"))
                                 hover_background Solid("#ffffff")
                                 xysize (24, 24)
                                 padding (0, 0)
-                                
                                 # <add>
-                                add "images/editor-icons/editor-delete-polygon.png":
+                                add "images/editor-icons/editor-mode-go.png":
                                     fit "contain"
                                     xalign 0.5
                                     yalign 0.5
                                 # </add>
                             # </button>
+                            # <button>
+                            button:
+                                action Function(change_ex_icon)
+                                tooltip ("Examine Tool " + vtype)
+                                background (Solid("#ccffee") if adventure.editToolMode == 1 else Solid("#cccccc"))
+                                hover_background Solid("#ffffff")
+                                xysize (24, 24)
+                                padding (0, 0)
+                                # <add>
+                                add "images/editor-icons/editor-mode-ex.png":
+                                    fit "contain"
+                                    xalign 0.5
+                                    yalign 0.5
+                                # </add>
+                            # </button>
+                            # <button>
+                            button:
+                                action Function(change_op_icon)
+                                tooltip ("Operate Tool " + vtype)
+                                background (Solid("#ccffee") if adventure.editToolMode == 2 else Solid("#cccccc"))
+                                hover_background Solid("#ffffff")
+                                xysize (24, 24)
+                                padding (0, 0)
+                                # <add>
+                                add "images/editor-icons/editor-mode-op.png":
+                                    fit "contain"
+                                    xalign 0.5
+                                    yalign 0.5
+                                # </add>
+                            # </button>
+                            # <button>
+                            button:
+                                action Function(change_say_icon)
+                                tooltip ("Say Tool " + vtype)
+                                background (Solid("#ccffee") if adventure.editToolMode == 3 else Solid("#cccccc"))
+                                hover_background Solid("#ffffff")
+                                xysize (24, 24)
+                                padding (0, 0)
+                                # <add>
+                                add "images/editor-icons/editor-mode-say.png":
+                                    fit "contain"
+                                    xalign 0.5
+                                    yalign 0.5
+                                # </add>
+                            # </button>
+                            # <if>
+                            if adventure.editMode == 2:
+                                # <button>
+                                button:
+                                    action Function(delete_interactable)
+                                    tooltip "Delete This Icon"
+                                    background Solid("#cccccc")
+                                    hover_background Solid("#ffffff")
+                                    xysize (24, 24)
+                                    padding (0, 0)
+                                    # <add>
+                                    add "images/editor-icons/editor-delete-icon.png":
+                                        fit "contain"
+                                        xalign 0.5
+                                        yalign 0.5
+                                    # </add>
+                                # </button>
+                            else:
+                                # <button>
+                                button:
+                                    action NullAction()
+                                    background Solid("#666666")  # Transparent
+                                    ysize 25
+                                    xsize (editor_width - 25*4)
+                                # </button>
+                            # </if>
                         # </hbox>
-                    # </if>
+
+                        # <if>
+                        if adventure.editMode == 1 and vtype == "Verb":
+                            # <button>
+                            button:
+                                background create_gradient(editor_width + 6, 20, "#330000", "#660000", "vertical")
+                                hover_background create_gradient(editor_width + 6, 20, "#660000", "#990000", "vertical")
+                                action Function(get_interactable_verb)
+                                tooltip "Set Verb"
+                                xfill True
+                                #ypos 35
+                                ysize 20
+
+                                $ cur_verb = adventure.room[adventure.interactableId][get_edit_tool_mode()]
+                                text cur_verb size 12 bold False color "#FFFFFF" xpos ((editor_width // 2) - 2) xanchor 0.5 ypos 0
+                            # </button>
+                        else:
+                            # <button>
+                            button:
+                                action NullAction()
+                                background None  # Transparent
+                                xfill True
+                                ysize 20
+                            # </button>
+                        # </if>
+
+                    # </if icon>
                     # <button>
                     button:
                         action NullAction()
@@ -1113,6 +1554,8 @@ screen adventure_editor():
             # </frame>
         # </vbox>
     # </frame>
+
+    $ interactable_type = get_interactable_type()
 
     # <if>
     if adventure.modalFreeze == 0 and adventure.editMode > 0:
@@ -1142,7 +1585,7 @@ screen adventure_editor():
             ypos 135
         # </textbutton>
         # <if>
-        if adventure.editMode == 2:
+        if adventure.editMode == 2 and interactable_type == "polygon":
             # <textbutton>
             textbutton "◂◂":
                 action Function(priorPoint)
@@ -1174,14 +1617,14 @@ screen adventure_editor():
 
     # <if>
     if adventure.editMode > 0:
-        text ("Poly " + str(adventure.interactableId + 1)) size 15 xpos (editor_x + editor_width // 2) xanchor 0.5 ypos 138 color "#00cc66"
+        text ("#" + str(adventure.interactableId + 1) + " (" + interactable_type_text(interactable_type) + ")" ) size 15 xpos (editor_x + editor_width // 2) xanchor 0.5 ypos 138 color "#00cc66"
     # </if>
 
     $ mode_text = get_mode_text(adventure.editMode)
     text mode_text size 12 xpos (editor_x + editor_width // 2) xanchor 0.5 ypos 190 color "#999999"
 
     # <if>
-    if adventure.editMode == 2:
+    if adventure.editMode == 2 and interactable_type == "polygon":
         text ("Pt. " + str(adventure.pointId + 1)) size 15 xpos (editor_x + editor_width // 2) xanchor 0.5 ypos 247 color "#00cc66"
     # </if>
 
