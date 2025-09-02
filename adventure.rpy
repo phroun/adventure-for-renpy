@@ -3,7 +3,7 @@
 **
 **   adventure.rpy - Adventure Module (for RenPy)
 **
-**   Version 0.1 revision 7
+**   Version 0.1 revision 8
 **
 **************************************************************************
 This module is released under the MIT License:
@@ -34,11 +34,12 @@ DEALINGS IN THE SOFTWARE.
 
 define ADVENTURE_VERSION_MAJOR = 0
 define ADVENTURE_VERSION_MINOR = 1
-define ADVENTURE_VERSION_REVISION = 7
+define ADVENTURE_VERSION_REVISION = 8
 
-define ADVENTURE_LOG = DynamicCharacter(">>>", who_color="#999999", what_color="#999999")
+default ADVENTURE_LOG = DynamicCharacter(">>>", who_color="#999999", what_color="#999999")
 
 default adventure.do_logging = True
+default adventure.first_person = False  # False = You, True = I
 default adventure.iconset = "free-icons"
 default adventure.iconzoom = 0.05
 default adventure.toolbar_position = "right"
@@ -511,21 +512,33 @@ init python:
             if cmd.endswith(" " + noun.lower()):
                 remainder = cmd[:-(len(noun)+1)]
                 crem = cmdc[:-(len(noun)+1)]
-                print("CONSIDERING", noun, crem)
                 canonical_cmd = canonize_phrase(crem, adventure.verb_aliases)
                 # <if>
                 if canonical_cmd.lower().startswith(verb):
                     slurry = canonical_cmd[len(verb):]
-                    matches.append(verb + slurry + " " + noun)
+                    matches.append((verb + slurry + " " + noun, len(noun)))
                 # <if>
             # </if ends with noun>
         # </for>
 
-        print("LOGGING")
-        print(sentences)
-        print("MATCHED", matches)
-
-        logtext = "{b}{i}" + adventure_escape_renpy("verb noun") + "{/i}{/b}"
+        highest = 0
+        bestmatch = ""
+        # <for>
+        for match, nl in matches:
+            # <if>
+            if nl > highest:
+                highest = nl
+                bestmatch = match
+            # </if>
+        # </for>
+        
+        # <if>
+        if adventure.first_person:
+            person = "I "
+        else:
+            person = "You "
+        # </if>
+        logtext = "{b}{i}" + person + adventure_escape_renpy(bestmatch) + "{/i}{/b}"
         ADVENTURE_LOG.add_history(kind="adv", what=logtext, who=ADVENTURE_LOG.name)
         return len(matches) != 0
     # </def>
