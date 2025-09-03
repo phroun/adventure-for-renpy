@@ -346,6 +346,12 @@ init python:
         except:
             print("No room data loaded")
         # </try>
+        
+        print("This game is built using \"Adventure for RenPy\" by Jeffrey R. Day:")
+        print("A free (MIT Licensed) module to add point-and-click adventure game support to RenPy.")
+        print("https://github.com/phroun/adventure-for-renpy")
+        print("")
+        print("Please consider supporting development of the \"Adventure for RenPy\" module by donating to me on ko-fi:  https://ko-fi.com/jeffday")
     # </def adventure_init>
 
     # <def>
