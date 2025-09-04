@@ -46,6 +46,11 @@ MIT License - see [LICENSE](LICENSE) file for details.
 
 ## Changelog
 
+### 0.1.9
+- Allow selecting icons or polygons with the arrow tool
+- Added verb icon palette
+- Clicking an icon now generates a command for the parser
+
 ### 0.1.8
 - History log now records actions with either first or third person
 
@@ -87,11 +92,8 @@ MIT License - see [LICENSE](LICENSE) file for details.
 
 ### Requirements to achieve 1.0:
 
-- Allow placement of Verb Overlay Icons in addition to Polygons
-  - Operate Mode Verbs: Move/Speak/Talk/Hit/Wait/Eat/Taste/Take
-  - Examine Mode Verbs: Taste/Look/Look(Hint)/Read(Hint)
-  - Allow Active Scenes to Overload a Room+Verb+Label with a Scene Trigger
-    - Generate an Error in Advance if Specified Room+Verb+Label is Undefined
+- Allow Active Scenes to Overload a Room+Verb+Label with a Scene Trigger
+  - Generate an Error in Advance if Specified Room+Verb+Label is Undefined
 - Add support for a Game Toolbar for Mode Selection
   - Toolbar Radio Buttons
   - Toolbar Checkboxes
@@ -101,6 +103,8 @@ MIT License - see [LICENSE](LICENSE) file for details.
   - Into Editor
   - Into Click Processing
 - Debug Mode to Force-Override Flag Values
+- Task & Notes Journal
+- Dialogue and Choices Style
 
 ### Feature Requests:
 

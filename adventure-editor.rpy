@@ -3,7 +3,7 @@
 **
 **   adventure-editor.rpy - Editor for Adventure Module (for RenPy)
 **
-**   Version 0.1 revision 8
+**   Version 0.1 revision 9
 **
 **************************************************************************
 This module is released under the MIT License:
@@ -34,9 +34,10 @@ DEALINGS IN THE SOFTWARE.
 
 define ADVENTURE_EDITOR_VERSION_MAJOR = 0
 define ADVENTURE_EDITOR_VERSION_MINOR = 1
-define ADVENTURE_EDITOR_VERSION_REVISION = 8
+define ADVENTURE_EDITOR_VERSION_REVISION = 9
 
 define editor_width = 126
+define editor_height = 360
 default adventure.editor_last_targids = []
 default adventure.pointId = 0
 default adventure.pointMode = 0
@@ -51,39 +52,7 @@ init python:
     import math
 
     # <def>
-    def examine_save_file(slot):
-        """Read save file using public Ren'Py functions"""
-        # <try>
-        try:
-            # First, save current state to a temp location
-            current_vars = {}
-            # <for>
-            for name, value in store.__dict__.items():
-                # <if>
-                if not name.startswith('_') and not callable(value):
-                    current_vars[name] = value
-                # </if>
-            # </for>
-            print("=== CURRENT STORE VARIABLES ===")
-            # <for>
-            for name, value in current_vars.items():
-                print("{}: {} = {}".format(name, type(value).__name__, repr(value)[:100]))
-            # </for>
-            # Try to get save info
-            import renpy
-            save_info = renpy.list_saved_games()
-            print("=== AVAILABLE SAVES ===")
-            # <for>
-            for save in save_info:
-                print("Slot: {}, Time: {}".format(save[0], save[1]))
-            # </for>
-        except Exception as e:
-            print("Error: {}".format(e))
-        # </try>
-    # </def examine_save_file>
-
-    # <def>
-    def get_polygon_weighted_center(points, density_radius=50):
+    def adventure_get_polygon_weighted_center(points, density_radius=50):
         """
         Get the perceptual center of a polygon, weighted toward thicker sections.
         
@@ -138,12 +107,12 @@ init python:
             return (weighted_x / total_weight, weighted_y / total_weight)
         else:
             # Fallback to geometric centroid
-            return get_polygon_centroid(points)
+            return adventure_get_polygon_centroid(points)
         # </if>
-    # </def get_polygon_weighted_center>
+    # </def adventure_get_polygon_weighted_center>
     
     # <def>
-    def get_polygon_centroid(points):
+    def adventure_get_polygon_centroid(points):
         """
         Calculate the geometric centroid (center of mass) of a polygon.
         This is more accurate than simple average for irregular shapes.
@@ -187,10 +156,10 @@ init python:
         cy /= (6 * area)
         
         return (abs(cx), abs(cy))
-    # </def get_polygon_cenroid>
+    # </def adventure_get_polygon_cenroid>
     
     # <def>
-    def get_polygon_visual_center(points, method="weighted"):
+    def adventure_get_polygon_visual_center(points, method="weighted"):
         """
         Get the visual center using different methods.
         
@@ -200,9 +169,9 @@ init python:
         """
         # <if>
         if method == "weighted":
-            return get_polygon_weighted_center(points)
+            return adventure_get_polygon_weighted_center(points)
         elif method == "centroid":
-            return get_polygon_centroid(points)
+            return adventure_get_polygon_centroid(points)
         elif method == "average":
             if not points:
                 return (0, 0)
@@ -218,9 +187,9 @@ init python:
             max_y = max(p[1] for p in points)
             return ((min_x + max_x) / 2, (min_y + max_y) / 2)
         else:
-            return get_polygon_weighted_center(points)
+            return adventure_get_polygon_weighted_center(points)
         # </if>
-    # </def get_polygon_visual_center>
+    # </def adventure_get_polygon_visual_center>
 
     # <class>
     class AlphaPolygon(renpy.Displayable):
@@ -289,7 +258,7 @@ init python:
     # </class AlphaPolygon>
 
     # <def>
-    def create_gradient(width, height, color1, color2, direction="vertical"):
+    def adventure_create_gradient(width, height, color1, color2, direction="vertical"):
         """
         Create a gradient image dynamically using Ren'Py's displayables
         """
@@ -328,13 +297,14 @@ init python:
             # </if>
         # </for> 
         return Composite((width, height), *layers)
-    # </def create_gradient>
+    # </def adventure_create_gradient>
 
     # <def>
     def set_play_mode():
         # <if>
         if adventure.modalFreeze == 0:
             adventure.editMode = 0
+            adventure.visibleMode = "default"
             adventure.screen_should_exit = True
             renpy.restart_interaction()
         # </if>
@@ -345,6 +315,7 @@ init python:
         # <if>
         if adventure.modalFreeze == 0:
             adventure.editMode = 1
+            adventure.visibleMode = get_edit_tool_mode()
             adventure.screen_should_exit = True
             renpy.restart_interaction()
         # </if>
@@ -355,6 +326,7 @@ init python:
         # <if>
         if adventure.modalFreeze == 0:
             adventure.editMode = 2
+            adventure.visibleMode = get_edit_tool_mode()
             adventure.pointMode = 0
             adventure.screen_should_exit = True
             renpy.restart_interaction()
@@ -376,6 +348,7 @@ init python:
         # <if>
         if adventure.modalFreeze == 0:
             adventure.editToolMode = 0
+            adventure.visibleMode = get_edit_tool_mode()
             adventure.screen_should_exit = True
             renpy.restart_interaction()
         # </if>
@@ -386,6 +359,7 @@ init python:
         # <if>
         if adventure.modalFreeze == 0:
             adventure.editToolMode = 1
+            adventure.visibleMode = get_edit_tool_mode()
             adventure.screen_should_exit = True
             renpy.restart_interaction()
         # </if>
@@ -396,6 +370,7 @@ init python:
         # <if>
         if adventure.modalFreeze == 0:
             adventure.editToolMode = 2
+            adventure.visibleMode = get_edit_tool_mode()
             adventure.screen_should_exit = True
             renpy.restart_interaction()
         # </if>
@@ -406,6 +381,7 @@ init python:
         # <if>
         if adventure.modalFreeze == 0:
             adventure.editToolMode = 3
+            adventure.visibleMode = get_edit_tool_mode()
             adventure.screen_should_exit = True
             renpy.restart_interaction()
         # </if>
@@ -416,13 +392,14 @@ init python:
         # <if>
         if adventure.modalFreeze == 0:
             adventure.editToolMode = 4
+            adventure.visibleMode = get_edit_tool_mode()
             adventure.screen_should_exit = True
             renpy.restart_interaction()
         # </if>
     # </def change_condition>
 
     # <def>
-    def field_value(field):
+    def adventure_field_value(field):
         # <if>
         if adventure.interactableId <= len(adventure.room) - 1:
             this_interactable = adventure.room[adventure.interactableId]
@@ -478,6 +455,15 @@ init python:
             return adventure.room[adventure.interactableId][get_edit_tool_mode()]
         else:
             return ""
+    # </def>
+    
+    # <def>
+    def adventure_set_verb(field, verb):
+        # <if>
+        if adventure.interactableId <= len(adventure.room) - 1:
+            this_interactable = adventure.room[adventure.interactableId]
+            this_interactable[field] = verb
+        # </if>
     # </def>
 
     # <def>
@@ -552,7 +538,7 @@ init python:
     # </def toggle_say_icon>
 
     # <def>
-    def delete_point():
+    def adventure_delete_point():
         # <if>
         if adventure.pointId > 0 or len(adventure.room[adventure.interactableId]["points"]) > 1:
           del adventure.room[adventure.interactableId]["points"][adventure.pointId]
@@ -565,7 +551,7 @@ init python:
         # </if>
         adventure.screen_should_exit = True
         renpy.restart_interaction()
-    # </def set_pointmode>
+    # </def adventure_delete_point>
 
     # <def>
     def delete_interactable():
@@ -585,7 +571,7 @@ init python:
             adventure.screen_should_exit = True
             renpy.restart_interaction()
         # </if>
-    # </def deleter_interactable>
+    # </def delete_interactable>
 
     # <class>
     class Line(renpy.Displayable):
@@ -713,12 +699,19 @@ init python:
                 # <case>
                 case 1: # Select Select Tool
                     targids = []
+                    # <if>
+                    for icon in adventure.screen_icons:
+                        # <if>
+                        if adventure_point_in_icon(adventure.mousex, adventure.mousey, icon):
+                            targids.append(icon["interactableId"])
+                        # </if>
+                    # </if>
                     # <for>
                     for i in range(len(adventure.room)):
                         # <if>
                         if (len(adventure.room[i]["points"]) > 2) and adventure.room[i]["type"] == "polygon":
                             # <if>
-                            if point_in_polygon(adventure.mousex, adventure.mousey, adventure.room[i]["points"]):
+                            if adventure_point_in_polygon(adventure.mousex, adventure.mousey, adventure.room[i]["points"]):
                                 targids.append(i)
                             # </if>
                         # </if polygon and at least 3 points>
@@ -770,24 +763,24 @@ init python:
     # </def adventure_editor_mouse>
 
     # <def>
-    def priorPoint():
+    def adventure_prior_point():
         # <if>
         if adventure.pointId > 0:
             adventure.pointId -= 1
         else:
             adventure.pointId = max(0, len(adventure.room[adventure.interactableId]["points"]) - 1)
         # </if>
-    # </def priorPoint>
+    # </def adventure_prior_point>
 
     # <def>
-    def nextPoint():
+    def adventure_next_point():
         # <if>
         if adventure.pointId < len(adventure.room[adventure.interactableId]["points"]) - 1:
             adventure.pointId += 1
         else:
             adventure.pointId = 0
         # </if>
-    # </def nextPoint>
+    # </def adventure_next_point>
 
     # <def>
     def priorInteractable():
@@ -820,7 +813,7 @@ init python:
     # </def nextInteractable>
     
     # <def>
-    def create_new_polygon():
+    def adventure_create_new_polygon():
         # <if>
         if adventure.modalFreeze == 0:
             adventure.room.append({
@@ -840,10 +833,10 @@ init python:
             adventure.screen_should_exit = True
             renpy.restart_interaction()
         # </if>
-    # </def create_new_polygon>
+    # </def adventure_create_new_polygon>
 
     # <def>
-    def create_new_icon():
+    def adventure_create_new_icon():
         # <if>
         if adventure.modalFreeze == 0:
             adventure.room.append({
@@ -863,14 +856,14 @@ init python:
             adventure.screen_should_exit = True
             renpy.restart_interaction()
         # </if>
-    # </def create_new_icon>
+    # </def adventure_create_new_icon>
     
     # <def>
-    def toggle_editor_pos():
+    def adventure_toggle_editor_pos():
         adventure.editorPos = 1 - adventure.editorPos
         adventure.screen_should_exit = True
         renpy.restart_interaction()
-    # </def toggle_editor_pos>
+    # </def adventure_toggle_editor_pos>
 
     # <def>
     def get_interactable_tag():
@@ -901,26 +894,6 @@ init python:
         # </if>
     # </def get_interactable_tag>
     
-    # <def>
-    def debug_save_contents():
-        print("=== SAVE DEBUG ===")
-        # <for>
-        for name, value in store.__dict__.items():
-            # <if>
-            if not name.startswith('_') and not callable(value):
-                # <try>
-                try:
-                    # Test if it's serializable (save-safe)
-                    import pickle
-                    pickle.dumps(value)
-                    print("SAVEABLE: {} = {} (type: {})".format(name, repr(value)[:100], type(value).__name__))
-                except:
-                    print("NOT SAVEABLE: {} (type: {})".format(name, type(value).__name__))
-                # </try>
-            # </if>
-        # </for>
-    # </def debug_save_contents>
-
     # <def>
     def adventure_editor_input():
         print("editor input")
@@ -954,7 +927,7 @@ init python:
     # </def interactable_type_text>
 
     # <def>
-    def get_mode_text(mode):
+    def adventure_get_mode_text(mode):
         # <match>
         match mode:
             # <case>
@@ -988,7 +961,7 @@ init python:
                 return "Unknown"
             # </case>
         # </match>
-    # </def get_mode_text>
+    # </def adventure_get_mode_text>
 
     # <def>
     def export_room_data_readable():
@@ -1038,6 +1011,23 @@ init python:
         # </try>
     # </def export_room_data_readable>
 
+    # <def>
+    def adventure_chunk_dict(original_dict, max_size):
+        # <if>
+        if max_size <= 0:
+            raise ValueError("max_size must be positive")
+        # </if>
+        items = list(original_dict.items())
+        chunks = []
+        # <for>
+        for i in range(0, len(items), max_size):
+            chunk = dict(items[i:i + max_size])
+            chunks.append(chunk)
+        # </for>
+        return chunks
+    # </def>
+# </init python>
+
 # <label>
 label get_editor_text_inner(prompt, default, length=20):
   show screen adventure_interaction
@@ -1052,6 +1042,8 @@ screen adventure_editor():
 
     # <python>
     python:
+        icon_browse = False
+        
         # <if>
         if adventure.roomName != adventure.lastRoom:
             # Initialize the new room:
@@ -1061,6 +1053,7 @@ screen adventure_editor():
         editor_x = 20 if (adventure.editorPos == 0) else (config.screen_width - (editor_width + 20))
     # </python>
 
+    $ adventure.visibleMode = "default" if adventure.editMode == 0 else get_edit_tool_mode()
     # <if>
     if adventure.editMode != 0:
         # <for>
@@ -1069,7 +1062,7 @@ screen adventure_editor():
             if (i != adventure.interactableId):
                 add AlphaPolygon(adventure.room[i]["points"], (0, 0, 255, 128))
                 add PolyLine(adventure.room[i]["points"], "#0000ff", 2)
-                $ center_x, center_y = get_polygon_weighted_center(adventure.room[i]["points"])
+                $ center_x, center_y = adventure_get_polygon_weighted_center(adventure.room[i]["points"])
                 # <text>
                 text adventure.room[i]["tag"]:
                     color "#ffffff"
@@ -1083,10 +1076,38 @@ screen adventure_editor():
 
         # <if>
         if len(adventure.room) > 0 and len(adventure.room[adventure.interactableId]["points"]) >= 1:
-            $ current_polygon = AlphaPolygon(adventure.room[adventure.interactableId]["points"], (255, 0, 0, 128))
-            # show expression current_polygon as curent_poly
-            add current_polygon
-            add PolyLine(adventure.room[adventure.interactableId]["points"], "#ff0000", 3)
+            $ this_interactable = adventure.room[adventure.interactableId]
+            # <if>
+            if this_interactable["type"] == "polygon":
+                $ current_polygon = AlphaPolygon(this_interactable["points"], (255, 0, 0, 128))
+                # show expression current_polygon as curent_poly
+                add current_polygon
+                add PolyLine(this_interactable["points"], "#ff0000", 3)
+            # </if polygon>
+            if this_interactable["type"] == "icon" and adventure.editMode == 1:
+                # <for>
+                $ found_icon = False
+                for icon in adventure.screen_icons:
+                    # <if>
+                    if icon["interactableId"] == adventure.interactableId:
+                        # <python>
+                        python:
+                            found_icon = True
+                            outline = []
+                            outline.append((icon["position"][0] - icon["size"][0]//2, icon["position"][1] - icon["size"][1]//2))
+                            outline.append((icon["position"][0] + icon["size"][0]//2, icon["position"][1] - icon["size"][1]//2))
+                            outline.append((icon["position"][0] + icon["size"][0]//2, icon["position"][1] + icon["size"][1]//2))
+                            outline.append((icon["position"][0] - icon["size"][0]//2, icon["position"][1] + icon["size"][1]//2))
+                        # </python>
+                        add PolyLine(outline, "#ffff00", 3)
+                    # </if>
+                # </for>
+                # <if>
+                if not found_icon and len(this_interactable["points"]) > 0:
+                    $ this_point = this_interactable["points"][0]
+                    add Circle(10, (255, 255, 0), 3) xpos this_point[0] ypos this_point[1] xanchor 0.5 yanchor 0.5
+                # </if>
+            # </if icon>
         # </if>
         
         # <if>
@@ -1102,7 +1123,9 @@ screen adventure_editor():
                 add Line(last_point, mid_point, (0, 0, 0), 3)
                 add Line(this_point, mid_point, (255, 255, 255), 3)
             # </if>
-            add Circle(10, (255, 255, 255), 3) xpos this_point[0] ypos this_point[1] xanchor 0.5 yanchor 0.5
+            $ rad = 10 if adventure.room[adventure.interactableId]["type"] == "polygon" else 40
+            $ color = (255, 255, 255) if rad == 3 else (255, 255, 0)
+            add Circle(rad, color, 3) xpos this_point[0] ypos this_point[1] xanchor 0.5 yanchor 0.5
         # </if>
     # </if>
 
@@ -1130,7 +1153,7 @@ screen adventure_editor():
         xpos editor_x - 5
         ypos 80
         xsize (editor_width + 10)
-        ysize 300
+        ysize (editor_height + 4)
         padding (2, 2)  # Border Thickness
 
         # <vbox>
@@ -1138,8 +1161,8 @@ screen adventure_editor():
             # Title bar with background
             # <button>
             button:
-                background create_gradient(editor_width + 6, 20, "#00FFBB", "#006633", "vertical")
-                action Function(toggle_editor_pos)
+                background adventure_create_gradient(editor_width + 6, 20, "#00FFBB", "#006633", "vertical")
+                action Function(adventure_toggle_editor_pos)
                 tooltip "Toggle Editor Position"
                 xfill True
                 ysize 20
@@ -1223,7 +1246,7 @@ screen adventure_editor():
                         # </button>
                         # <button>
                         button:
-                            action Function(create_new_icon)
+                            action Function(adventure_create_new_icon)
                             tooltip "Create New Interaction Icon"
                             background Solid("#cccccc")
                             hover_background Solid("#ffffff")
@@ -1239,7 +1262,7 @@ screen adventure_editor():
                         # </button>
                         # <button>
                         button:
-                            action Function(create_new_polygon)
+                            action Function(adventure_create_new_polygon)
                             tooltip "Create New Polygon"
                             background Solid("#cccccc")
                             hover_background Solid("#ffffff")
@@ -1258,8 +1281,8 @@ screen adventure_editor():
                     if adventure.editMode > 0 and len(adventure.room) > 0:
                         # <button>
                         button:
-                            background create_gradient(editor_width + 6, 20, "#330000", "#660000", "vertical")
-                            hover_background create_gradient(editor_width + 6, 20, "#660000", "#990000", "vertical")
+                            background adventure_create_gradient(editor_width + 6, 20, "#330000", "#660000", "vertical")
+                            hover_background adventure_create_gradient(editor_width + 6, 20, "#660000", "#990000", "vertical")
                             action Function(get_interactable_tag)
                             tooltip "Set Object Tag"
                             xfill True
@@ -1319,7 +1342,7 @@ screen adventure_editor():
                                 # </button>
                                 # <button>
                                 button:
-                                    action Function(delete_point)
+                                    action Function(adventure_delete_point)
                                     tooltip "Delete This Point"
                                     background Solid("#cccccc")
                                     hover_background Solid("#ffffff")
@@ -1380,7 +1403,7 @@ screen adventure_editor():
                                 xysize (24, 24)
                                 padding (0, 0)
                                 # <add>
-                                add ("images/editor-icons/editor-" + ("un" if field_value("go") == "" else "") + "checked.png"):
+                                add ("images/editor-icons/editor-" + ("un" if adventure_field_value("go") == "" else "") + "checked.png"):
                                     fit "contain"
                                     xalign 0.5
                                     yalign 0.5
@@ -1394,7 +1417,7 @@ screen adventure_editor():
                                 xysize (24, 24)
                                 padding (0, 0)
                                 # <add>
-                                add ("images/editor-icons/editor-" + ("un" if field_value("ex") == "" else "") + "checked.png"):
+                                add ("images/editor-icons/editor-" + ("un" if adventure_field_value("ex") == "" else "") + "checked.png"):
                                     fit "contain"
                                     xalign 0.5
                                     yalign 0.5
@@ -1408,7 +1431,7 @@ screen adventure_editor():
                                 xysize (24, 24)
                                 padding (0, 0)
                                 # <add>
-                                add ("images/editor-icons/editor-" + ("un" if field_value("op") == "" else "") + "checked.png"):
+                                add ("images/editor-icons/editor-" + ("un" if adventure_field_value("op") == "" else "") + "checked.png"):
                                     fit "contain"
                                     xalign 0.5
                                     yalign 0.5
@@ -1422,7 +1445,7 @@ screen adventure_editor():
                                 xysize (24, 24)
                                 padding (0, 0)
                                 # <add>
-                                add ("images/editor-icons/editor-" + ("un" if field_value("say") == "" else "") + "checked.png"):
+                                add ("images/editor-icons/editor-" + ("un" if adventure_field_value("say") == "" else "") + "checked.png"):
                                     fit "contain"
                                     xalign 0.5
                                     yalign 0.5
@@ -1436,7 +1459,7 @@ screen adventure_editor():
                                 xysize (24, 24)
                                 padding (0, 0)
                                 # <add>
-                                add ("images/editor-icons/editor-" + ("un" if field_value("condition") == "" else "") + "checked.png"):
+                                add ("images/editor-icons/editor-" + ("un" if adventure_field_value("condition") == "" else "") + "checked.png"):
                                     fit "contain"
                                     xalign 0.5
                                     yalign 0.5
@@ -1573,8 +1596,8 @@ screen adventure_editor():
                         (vtype == "Icons" and adventure.editToolMode == 4)):
                             # <button>
                             button:
-                                background create_gradient(editor_width + 6, 20, "#330000", "#660000", "vertical")
-                                hover_background create_gradient(editor_width + 6, 20, "#660000", "#990000", "vertical")
+                                background adventure_create_gradient(editor_width + 6, 20, "#330000", "#660000", "vertical")
+                                hover_background adventure_create_gradient(editor_width + 6, 20, "#660000", "#990000", "vertical")
                                 action Function(get_interactable_verb)
                                 tooltip ("Set Condition" if adventure.editToolMode == 4 else "Set Verb")
                                 xfill True
@@ -1585,6 +1608,47 @@ screen adventure_editor():
                                 text cur_verb size 12 bold False color "#FFFFFF" xpos ((editor_width // 2) - 2) xanchor 0.5 ypos 0
                             # </button>
                         else:
+                            # <if>
+                            if adventure.editMode in [1,2] and vtype == "Icons" and adventure.editToolMode < 4:
+                                python:
+                                    icon_browse = True
+                                    base_list = { "none": ("verb-none.png", "none") }
+                                    base_list.update(adventure.verb_icons[get_edit_tool_mode()])
+                                    chunked_list = adventure_chunk_dict(base_list, 3)
+                                    sel_value = adventure_field_value(get_edit_tool_mode())
+                                    sel_verb = adventure.room[adventure.interactableId][get_edit_tool_mode()]
+                                    # <if>
+                                    if sel_value == "":
+                                        sel_value = "none"
+                                    # </if>
+                                # <for>
+                                for minilist in chunked_list:
+                                    # <hbox>
+                                    hbox:
+                                        spacing 3  # Space between icons
+                                        xpos 3    # Position from left edge
+                                        ypos 0    # Position from top edge
+                                        ysize 43
+                                        for verb in minilist:
+                                            button:
+                                                action Function(adventure_set_verb, get_edit_tool_mode(), verb if verb != "none" else "")
+                                                tooltip (verb)
+                                                background (Solid("#ccffee") if sel_value == verb else Solid("#666666"))
+                                                hover_background (Solid("#ccff99") if sel_value == verb else Solid("#999999"))
+                                                xysize (40, 40)
+                                                padding (0, 0)
+                                                # <add>
+                                                add ("images/free-icons/" + base_list[verb][0]):
+                                                    fit "contain"
+                                                    xalign 0.5
+                                                    yalign 0.5
+                                                # </add>
+                                            # </button>
+                                        # </for>
+                                    # </hbox>
+                                # </for chunked list>
+                            # </if>
+
                             # <button>
                             button:
                                 action NullAction()
@@ -1593,6 +1657,7 @@ screen adventure_editor():
                                 ysize 20
                             # </button>
                         # </if>
+
 
                     # </if icon>
                     # <button>
@@ -1647,7 +1712,7 @@ screen adventure_editor():
         if adventure.editMode == 2 and interactable_type == "polygon":
             # <textbutton>
             textbutton "◂◂":
-                action Function(priorPoint)
+                action Function(adventure_prior_point)
                 tooltip "Select Prior Point"
                 text_size 12
                 xpos editor_x
@@ -1659,7 +1724,7 @@ screen adventure_editor():
             # </textbutton>
             # <textbutton>
             textbutton "▸▸":
-                action Function(nextPoint)
+                action Function(adventure_next_point)
                 tooltip "Select Next Point"
                 text_size 12
                 xpos (editor_x + editor_width)
@@ -1679,7 +1744,7 @@ screen adventure_editor():
         text ("#" + str(adventure.interactableId + 1) + " (" + interactable_type_text(interactable_type) + ")" ) size 15 xpos (editor_x + editor_width // 2) xanchor 0.5 ypos 138 color "#00cc66"
     # </if>
 
-    $ mode_text = get_mode_text(adventure.editMode)
+    $ mode_text = adventure_get_mode_text(adventure.editMode)
     text mode_text size 12 xpos (editor_x + editor_width // 2) xanchor 0.5 ypos 190 color "#999999"
 
     # <if>
@@ -1687,22 +1752,26 @@ screen adventure_editor():
         text ("Pt. " + str(adventure.pointId + 1)) size 15 xpos (editor_x + editor_width // 2) xanchor 0.5 ypos 247 color "#00cc66"
     # </if>
 
-    # <text>
-    text "Room:":
-        ypos 310
-        xpos (editor_x + editor_width // 2)
-        xanchor 0.5
-        bold True
-        size 14
-    # </text>
-    # <text>
-    text "[adventure.roomName]":
-        ypos 325
-        xpos (editor_x + editor_width // 2)
-        xanchor 0.5
-        size 14
-    # </text>
-    # <button>
+    # <if>
+    if not icon_browse:
+        # <text>
+        text "Room:":
+            ypos (editor_height)
+            xpos (editor_x + editor_width // 2)
+            xanchor 0.5
+            bold True
+            size 14
+        # </text>
+        # <text>
+        text "[adventure.roomName]":
+            ypos (editor_height + 15)
+            xpos (editor_x + editor_width // 2)
+            xanchor 0.5
+            size 14
+        # </text>
+        # <button>
+    # </if>
+
     # <textbutton>
     textbutton "Save Changes":
         action Function(export_room_data_readable)
@@ -1710,6 +1779,6 @@ screen adventure_editor():
         text_size 12
         xpos (editor_x + editor_width // 2)
         xanchor 0.5
-        ypos 350
+        ypos (editor_height + 50)
     # </textbutton> 
 # </screen adventure_editor>

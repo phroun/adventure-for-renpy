@@ -3,7 +3,7 @@
 **
 **   adventure.rpy - Adventure Module (for RenPy)
 **
-**   Version 0.1 revision 8
+**   Version 0.1 revision 9
 **
 **************************************************************************
 This module is released under the MIT License:
@@ -34,7 +34,7 @@ DEALINGS IN THE SOFTWARE.
 
 define ADVENTURE_VERSION_MAJOR = 0
 define ADVENTURE_VERSION_MINOR = 1
-define ADVENTURE_VERSION_REVISION = 8
+define ADVENTURE_VERSION_REVISION = 9
 
 default ADVENTURE_LOG = DynamicCharacter(">>>", who_color="#999999", what_color="#999999")
 
@@ -42,6 +42,8 @@ default adventure.do_logging = True
 default adventure.first_person = False  # False = You, True = I
 default adventure.iconset = "free-icons"
 default adventure.iconzoom = 0.05
+default adventure.icon_padding = 5
+default adventure.active_tool = "auto"
 default adventure.toolbar_position = "right"
 default adventure.toolbar_iconset = "free-icons"
 default adventure.toolbar_iconzoom = 0.1
@@ -64,23 +66,24 @@ default adventure.tool_icons = {
 
 default adventure.verb_icons = {  # organized by tool mode
     "go": {
-        "go": "verb-go.png",
+        "go": ("verb-go.png", "*go")
     },
     "ex": {
-        "ex": "verb-hint.png",
-        "taste": "verb-taste.png",
-        "look": "verb-look.png",
-        "read": "verb-read.png",
+        "ex": ("verb-hint.png", "*ex"),
+        "taste": ("verb-taste.png", "taste;lick"),
+        "look": ("verb-look.png", "look"),
+        "read": ("verb-read.png", "read")
     },
     "op": {
-        "op": "verb-hint.png",
-        "hit": "verb-hit.png",
-        "eat": "verb-eat.png",
-        "wait": "verb-wait.png",
-        "taste": "verb-taste.png",
+        "op": ("verb-hint.png", "*op"),
+        "hit": ("verb-hit.png", "hit"),
+        "eat": ("verb-eat.png", "eat"),
+        "wait": ("verb-wait.png", "wait"),
+        "taste": ("verb-taste.png", "taste;lick"),
+        "read": ("verb-read.png", "read")
     },
     "say": {
-        "speak": "verb-speak.png",
+        "speak": ("verb-speak.png", "*say")
     }
 }
 
@@ -146,7 +149,7 @@ default adventure.tool_verbs = {
          "talk", "talk to", "speak", "speak to", "say", "ask"
      ],
      "auto": [
-         "*go", "*op", ".*ex"
+         "*go", "*op", "*say", ".*ex"
      ]
 }
 
@@ -158,6 +161,7 @@ default adventure.modalFreeze = 0
 default adventure.mousex = -1
 default adventure.mousey = -1
 default adventure.editMode = 0
+default adventure.visibleMode = "default"
 default adventure.interactableId = 0
 default adventure.editorPos = 0
 default adventure.result = ""
@@ -167,6 +171,8 @@ default adventure.targets = []
 default adventure.target_x = -1
 default adventure.target_y = -1
 default adventure._temp_return = ""
+default adventure.iconSizes = {}
+default adventure.screen_icons = []
 
 # <init>
 init python:
@@ -214,14 +220,19 @@ init python:
                         adventure.targets = []
                         # <for>
                         for i in range(len(adventure.room)):
-                            # <if>
-                            if (len(adventure.room[i]["points"]) > 2):
+                            if adventure.room[i]["type"] == "polygon" and (len(adventure.room[i]["points"]) > 2):
                                 # <if>
-                                if point_in_polygon(adventure.mousex, adventure.mousey, adventure.room[i]["points"]):
-                                    adventure.targets.append(i)
+                                if adventure_point_in_polygon(adventure.mousex, adventure.mousey, adventure.room[i]["points"]):
+                                    adventure.targets.append((i, ""))
                                 # </if>
-                            # </if at least 3 points>
+                            # </if polygon with at least 3 points>
                         # </for all polygons in room>
+                        # <for>
+                        for icon in adventure.screen_icons:
+                            if adventure_point_in_icon(current_x, current_y, icon):
+                                adventure.targets = [(icon["interactableId"], icon["verb"])]
+                            # </if>
+                        # </for>
                         adventure.target_x = adventure.mousex
                         adventure.target_y = adventure.mousey
                         adventure._temp_return = "clicked"
@@ -243,7 +254,20 @@ init python:
     store.mousePosition = getMousePosition()
 
     # <def>
-    def point_in_polygon(x, y, points):
+    def adventure_point_in_icon(x, y, icon):
+        center_x, center_y = icon["position"]
+        width, height = icon["size"]
+        half_width = (width // 2)
+        half_height = (height // 2)
+        left = center_x - half_width
+        right = center_x + half_width
+        top = center_y - half_height
+        bottom = center_y + half_height
+        return left <= x <= right and top <= y <= bottom
+    # </def>
+
+    # <def>
+    def adventure_point_in_polygon(x, y, points):
         """
         Determine if a point is inside a polygon using the ray casting algorithm.
         
@@ -287,32 +311,32 @@ init python:
             p1x, p1y = p2x, p2y
         # </for>
         return inside
-    # </def point_in_polygon>
+    # </def adventure_point_in_polygon>
 
     # <def>
-    def checkEvent():
+    def adventure_checkEvent():
         # Create text showing the actual coordinates
         coordinates_text = "Mouse: ({}, {})".format(adventure.mousex, adventure.mousey)
         return Text(coordinates_text, color="#FF0000", size=30)
-    # </def checkEvent>
+    # </def adventure_checkEvent>
 
-    config.overlay_functions.append(checkEvent)
+    config.overlay_functions.append(adventure_checkEvent)
     
     # Helper functions for screen-based mouse tracking
     # <def>
-    def update_mouse_pos():
+    def adventure_update_mouse_pos():
         pos = renpy.get_mouse_pos()
         adventure.mousex = pos[0]
         adventure.mousey = pos[1]
-    # </def update_mouse_pos>
+    # </def adventure_update_mouse_pos>
 
     # <def>    
-    def click_mouse_pos():
+    def adventure_click_mouse_pos():
         pos = renpy.get_mouse_pos()
         adventure.mousex = pos[0]
         adventure.mousey = pos[1]
         print("Screen click at: ({}, {})".format(pos[0], pos[1]))
-    # </def click_mouse_pos>
+    # </def adventure_click_mouse_pos>
 
     # <def>
     def adventure_escape_renpy(text):
@@ -335,6 +359,35 @@ init python:
     # </def>
 
     # <def>
+    def adventure_get_image_dimensions(image_path):
+        """Get dimensions using renpy.render()"""
+        # <try>
+        try:
+            img = Image(image_path)
+            # Render the image to get its surface
+            rendered = renpy.render(img, 0, 0, 0, 0)
+            width, height = rendered.get_size()
+            return width, height
+        except Exception as e:
+            renpy.log(f"Error getting size for {image_path}: {e}")
+            return None, None
+        # </try>
+    # </def>
+
+    # <def>
+    def adventure_refresh_icon_dimensions():
+        # <for>
+        for tool in adventure.verb_icons:
+            # <for>
+            for verb in adventure.verb_icons[tool]:
+                icon_name = "images/" + adventure.iconset + "/" + adventure.verb_icons[tool][verb][0]
+                dim = adventure_get_image_dimensions(icon_name)
+                adventure.iconSizes[icon_name] = dim
+            # </for>
+        # </for>
+    # </def>
+
+    # <def>
     def adventure_init():
         # <if>
         if adventure.do_logging:
@@ -352,10 +405,12 @@ init python:
         print("https://github.com/phroun/adventure-for-renpy")
         print("")
         print("Please consider supporting development of the \"Adventure for RenPy\" module by donating to me on ko-fi:  https://ko-fi.com/jeffday")
+
+        adventure_refresh_icon_dimensions()
     # </def adventure_init>
 
     # <def>
-    def canonize_phrase(phrase, aliases):
+    def adventure_canonize_phrase(phrase, aliases):
         # Split the phrase into words
         words = phrase.split()
 
@@ -377,7 +432,7 @@ init python:
     # </def>
 
     # <def>
-    def apply_tag_aliases(these_nouns, tag_aliases, room_name):
+    def adventure_apply_tag_aliases(these_nouns, tag_aliases, room_name):
         possible_nouns = these_nouns[:]  # Start with a copy of original nouns
 
         # Get aliases to apply - global "*" section plus room-specific
@@ -455,7 +510,7 @@ init python:
             # </for>
         # </for>
         return possible_nouns
-    # </def apply_tag_aliases>
+    # </def adventure_apply_tag_aliases>
 
     # <def>
     def player_chooses_to(command):
@@ -468,10 +523,15 @@ init python:
             verbs = adventure.tool_verbs[tool]
             toolgroup = '*' + tool
             # <for>
-            for idx in adventure.targets:
+            for idx, iconverb in adventure.targets:
                 # <if>
-                if tool in adventure.room[idx]:
-                    group_bits = adventure.room[idx][tool].lower().split("//", 1)
+                if iconverb != "" or tool in adventure.room[idx]:
+                    # <if>
+                    if iconverb != "":
+                        group_bits = [iconverb]
+                    else:
+                        group_bits = adventure.room[idx][tool].lower().split("//", 1)
+                    # </if>
                     # <if>
                     if len(group_bits) > 0:
                         inter_verbs = group_bits[0].split(";")
@@ -495,12 +555,12 @@ init python:
                         if len(targ_bits) > 0:
                             these_nouns.extend(targ_bits[0].split(";"))
                         # </if>
-                        possible_nouns = apply_tag_aliases(these_nouns, adventure.tag_aliases, adventure.roomName)
+                        possible_nouns = adventure_apply_tag_aliases(these_nouns, adventure.tag_aliases, adventure.roomName)
                         # <for>
                         for verb in these_verbs:
                             # <for>
                             for noun in possible_nouns:
-                                canonical_verb = canonize_phrase(verb.lower(), adventure.verb_aliases)
+                                canonical_verb = adventure_canonize_phrase(verb.lower(), adventure.verb_aliases)
                                 sentences.append((canonical_verb.lower(), noun))
                             # </for>
                         # </for groups>
@@ -508,7 +568,7 @@ init python:
                 # </if valid tool>
             # <for targets>
         # </for>
-        
+        print(sentences)
         matches = []
 
         # <for>
@@ -518,7 +578,7 @@ init python:
             if cmd.endswith(" " + noun.lower()):
                 remainder = cmd[:-(len(noun)+1)]
                 crem = cmdc[:-(len(noun)+1)]
-                canonical_cmd = canonize_phrase(crem, adventure.verb_aliases)
+                canonical_cmd = adventure_canonize_phrase(crem, adventure.verb_aliases)
                 # <if>
                 if canonical_cmd.lower().startswith(verb):
                     slurry = canonical_cmd[len(verb):]
@@ -579,6 +639,96 @@ screen adventure_interaction():
     # </if _temp_return and no modalFreeze>
 
     use adventure_underlay
+    $ adventure.screen_icons = []
+    $ atool = adventure.active_tool if adventure.visibleMode == "default" else adventure.visibleMode
+    $ tools = [atool]
+    python:
+        # <if>
+        if atool in adventure.tool_verbs:
+            toolset = adventure.tool_verbs[atool]
+            # <for>
+            for tool in toolset:
+                # <if>
+                if tool.startswith("*"):
+                    tools.append(tool[1:])
+                # </if>
+            # </for>
+        # </if>
+    
+    # <for>
+    for interactableId, interactable in enumerate(adventure.room):
+        # <if>
+        if interactable["type"] == "icon":
+            $ icon_verbs = []
+            $ icon_verb_images = []
+            $ icon_verb_ids = []
+            # <for>
+            for point in interactable["points"]:
+                $ x, y = point
+                $ xoffs = 0
+                # <for>
+                for tool in tools:
+                    # <if>
+                    if tool in interactable and tool in adventure.verb_icons:
+                        $ verb = interactable[tool]
+                        # <if>
+                        if not verb.startswith("/") and not verb in icon_verbs:
+                            # <if>
+                            if verb in adventure.verb_icons[tool]:
+                                # <python>
+                                python:
+                                    icon_verbs.append(adventure.verb_icons[tool][verb][1])
+                                    icon_verb_images.append(adventure.verb_icons[tool][verb][0])
+                                    icon_verb_ids.append(interactableId)
+                                # </python>
+                            # </if>
+                        # </if not commented and not already in list>
+                    # </if in the data record>
+                # </for>
+                # <python>
+                python:
+                    total_width = 0
+                    # <for>
+                    for verbimage in reversed(icon_verb_images):
+                        this_width = adventure.iconSizes["images/" + adventure.iconset + "/" + verbimage][0] * adventure.iconzoom
+                        total_width += this_width if this_width != "None" else 20
+                    # </for>
+                    total_width += (len(icon_verb_images) - 1) * adventure.icon_padding
+                    xoffs -= total_width // 2
+                # </python>
+                # <for>
+                for i in range(len(icon_verb_images) - 1, -1, -1):
+                    $ verbimage = icon_verb_images[i]
+                    $ this_verb = icon_verbs[i]
+                    $ this_id = icon_verb_ids[i]
+                    # <add>
+                    add ("images/" + adventure.iconset + "/" + verbimage):
+                        xpos int(x + xoffs)
+                        ypos y
+                        xanchor 0
+                        yanchor 0.5
+                        zoom (adventure.iconzoom)
+                    # </add>
+                    # <python>
+                    python:
+                        this_size_raw = adventure.iconSizes["images/" + adventure.iconset + "/" + verbimage]
+                        this_size = (
+                            (this_size_raw[0] * adventure.iconzoom) if this_size_raw[0] != "None" else 20,
+                            (this_size_raw[1] * adventure.iconzoom) if this_size_raw[1] != "None" else 20
+                        )
+                        adventure.screen_icons.append({
+                            "interactableId": this_id,
+                            "verb": this_verb,
+                            "tag": interactable["tag"],
+                            "position": (int(x + xoffs + (this_size[0]//2)), y),
+                            "size": this_size
+                        })
+                        xoffs += this_size[0] + adventure.icon_padding
+                    # </python>
+                # </for>
+            # </for>
+        # </if>
+    # </for interactables>
     add mousePosition
     use adventure_editor    
     use adventure_overlay
