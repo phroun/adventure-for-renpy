@@ -36,151 +36,152 @@ define ADVENTURE_VERSION_MAJOR = 0
 define ADVENTURE_VERSION_MINOR = 1
 define ADVENTURE_VERSION_REVISION = 9
 
-default ADVENTURE_LOG = DynamicCharacter(">>>", who_color="#999999", what_color="#999999")
+init -10 python:
 
-default adventure.do_logging = True
-default adventure.first_person = False  # False = You, True = I
-default adventure.iconset = "free-icons"
-default adventure.iconzoom = 0.05
-default adventure.icon_padding = 5
-default adventure.active_tool = "auto"
-default adventure.toolbar_position = "right"
-default adventure.toolbar_iconset = "free-icons"
-default adventure.toolbar_iconzoom = 0.1
-default adventure.toolbar_anchor = 0
-default adventure.toolbar_margin_edge = 10
-default adventure.toolbar_margin_start = 5
-default adventure.toolbar_margin_end = 5
-default adventure.toolbar_icons = ["auto", "ex", "inventory"]
-default adventure.toolbar_menu = "touch_only"
-default adventure.toolbar_inventory_expand = True # one button per item? False = bag icon
-default adventure.toolbar_draw_order_reversed = False
-
-default adventure.tool_icons = {
-    "go": "mode-go.png",
-    "ex": "mode-examine.png",
-    "op": "mode-operate.png",
-    "say": "mode-talk.png",
-    "auto": "mode-auto.png",
-}
-
-default adventure.verb_icons = {  # organized by tool mode
-    "go": {
-        "go": ("verb-go.png", "*go")
-    },
-    "ex": {
-        "ex": ("verb-hint.png", "*ex"),
-        "taste": ("verb-taste.png", "taste;lick"),
-        "look": ("verb-look.png", "look"),
-        "read": ("verb-read.png", "read")
-    },
-    "op": {
-        "op": ("verb-hint.png", "*op"),
-        "hit": ("verb-hit.png", "hit"),
-        "eat": ("verb-eat.png", "eat"),
-        "wait": ("verb-wait.png", "wait"),
-        "taste": ("verb-taste.png", "taste;lick"),
-        "read": ("verb-read.png", "read")
-    },
-    "say": {
-        "speak": ("verb-speak.png", "*say")
-    }
-}
-
-default adventure.verb_aliases = {
-
-    # The parser will extract the fullest possible tag from the right
-    # end of the command string first, then will replace these words
-    # (left side of list below) in the remaining verb part to the
-    # canonical form (right side) before performing verb matching:
-    
-    "climb": "go",
-    "move": "go",
-    "walk": "go",
-    "op": "operate",
-    "ex": "examine"
-}
-
-default adventure.tag_aliases = {
-
-    # Interactables can also match more than one tag.  The tag field can
-    # be a semicolon separated list.
-    # The following aliases are also applied, the "*" section globally,
-    # and other sections can be added here by room name.
-    # If the tag exactly matches either side, the term in the other side
-    # of the list is implicitly added to the interactable.
-    # If the item begins with tilde (~) then it will also be considered
-    # a match if it is contained (as whole words) within a larger tag
-    # name.  If the other side contains a tilde as well, then the matching
-    # portion will be swapped out for the other side, but if the other
-    # side does not contain a tilde, then it will be added alone into the
-    # tag list.
-    
-    "*": {
-      "Elevator": "Lift",
-      "Lift": "Elevator",
-      "armor": "armour"
-    }
-
-}
-
-default adventure.tool_verbs = {
-
-    # A click with each of these tools will register as
-    # any or all of the verbs listed here:
-
-    "go": [
-         "go", "go through",
-         "enter", "go in", "go into",
-         "exit", "go out", "go out of",
-         "go across",
-     ],
-     "ex": [
-         "examine", "look", "read", "taste", "listen", "smell"
-     ],
-     "op": [
-         "operate", "use", "touch",
-         "press", "push", "pull",
-         "open", "close",
-         "turn", "turn on", "activate",
-         "turn off", "deactivate"
-     ],
-     "say": [
-         "talk", "talk to", "speak", "speak to", "say", "ask"
-     ],
-     "auto": [
-         "*go", "*op", "*say", ".*ex"
-     ]
-}
-
-default roomData = {}
-default adventure.room = []
-default adventure.roomName = "demo_room"
-default adventure.editing = False
-default adventure.modalFreeze = 0
-default adventure.mousex = -1
-default adventure.mousey = -1
-default adventure.editMode = 0
-default adventure.visibleMode = "default"
-default adventure.interactableId = 0
-default adventure.editorPos = 0
-default adventure.result = ""
-default adventure.lastRoom = "nowhere"
-default adventure.screen_should_exit = False
-default adventure.targets = []
-default adventure.target_x = -1
-default adventure.target_y = -1
-default adventure._temp_return = ""
-default adventure.iconSizes = {}
-default adventure.screen_icons = []
-
-# <init>
-init python:
     import math
     import pygame
     import renpy.display.render as render
     from renpy.display.core import Displayable
     import math
+
+    ADVENTURE_LOG = DynamicCharacter(">>>", who_color="#999999", what_color="#999999")
+
+    adventure.do_logging = True
+    adventure.first_person = False  # False = You, True = I
+    adventure.iconset = "free-icons"
+    adventure.iconzoom = 0.05
+    adventure.icon_padding = 5
+    adventure.active_tool = "auto"
+    adventure.toolbar_position = "right"
+    adventure.toolbar_iconset = "free-icons"
+    adventure.toolbar_iconzoom = 0.1
+    adventure.toolbar_anchor = 0
+    adventure.toolbar_margin_edge = 10
+    adventure.toolbar_margin_start = 5
+    adventure.toolbar_margin_end = 5
+    adventure.toolbar_icons = ["auto", "ex", "inventory"]
+    adventure.toolbar_menu = "touch_only"
+    adventure.toolbar_inventory_expand = True # one button per item? False = bag icon
+    adventure.toolbar_draw_order_reversed = False
+
+    adventure.tool_icons = {
+        "go": "mode-go.png",
+        "ex": "mode-examine.png",
+        "op": "mode-operate.png",
+        "say": "mode-talk.png",
+        "auto": "mode-auto.png",
+    }
+
+    adventure.verb_icons = {  # organized by tool mode
+        "go": {
+            "go": ("verb-go.png", "*go")
+        },
+        "ex": {
+            "ex": ("verb-hint.png", "*ex"),
+            "taste": ("verb-taste.png", "taste;lick"),
+            "look": ("verb-look.png", "look"),
+            "read": ("verb-read.png", "read")
+        },
+        "op": {
+            "op": ("verb-hint.png", "*op"),
+            "hit": ("verb-hit.png", "hit"),
+            "eat": ("verb-eat.png", "eat"),
+            "wait": ("verb-wait.png", "wait"),
+            "taste": ("verb-taste.png", "taste;lick"),
+            "read": ("verb-read.png", "read")
+        },
+        "say": {
+            "speak": ("verb-speak.png", "*say")
+        }
+    }
+
+    adventure.verb_aliases = {
+
+        # The parser will extract the fullest possible tag from the right
+        # end of the command string first, then will replace these words
+        # (left side of list below) in the remaining verb part to the
+        # canonical form (right side) before performing verb matching:
+        
+        "climb": "go",
+        "move": "go",
+        "walk": "go",
+        "op": "operate",
+        "ex": "examine"
+    }
+
+    adventure.tag_aliases = {
+
+        # Interactables can also match more than one tag.  The tag field can
+        # be a semicolon separated list.
+        # The following aliases are also applied, the "*" section globally,
+        # and other sections can be added here by room name.
+        # If the tag exactly matches either side, the term in the other side
+        # of the list is implicitly added to the interactable.
+        # If the item begins with tilde (~) then it will also be considered
+        # a match if it is contained (as whole words) within a larger tag
+        # name.  If the other side contains a tilde as well, then the matching
+        # portion will be swapped out for the other side, but if the other
+        # side does not contain a tilde, then it will be added alone into the
+        # tag list.
+        
+        "*": {
+          "Elevator": "Lift",
+          "Lift": "Elevator",
+          "armor": "armour"
+        }
+
+    }
+
+    adventure.tool_verbs = {
+
+        # A click with each of these tools will register as
+        # any or all of the verbs listed here:
+
+        "go": [
+             "go", "go through",
+             "enter", "go in", "go into",
+             "exit", "go out", "go out of",
+             "go across",
+         ],
+         "ex": [
+             "examine", "look", "read", "taste", "listen", "smell"
+         ],
+         "op": [
+             "operate", "use", "touch",
+             "press", "push", "pull",
+             "open", "close",
+             "turn", "turn on", "activate",
+             "turn off", "deactivate"
+         ],
+         "say": [
+             "talk", "talk to", "speak", "speak to", "say", "ask"
+         ],
+         "auto": [
+             "*go", "*op", "*say", ".*ex"
+         ]
+    }
+
+    roomData = {}
+    adventure.room = []
+    adventure.roomName = "demo_room"
+    adventure.editing = False
+    adventure.modalFreeze = 0
+    adventure.mousex = -1
+    adventure.mousey = -1
+    adventure.editMode = 0
+    adventure.visibleMode = "   "
+    adventure.interactableId = 0
+    adventure.editorPos = 0
+    adventure.result = ""
+    adventure.lastRoom = "nowhere"
+    adventure.screen_should_exit = False
+    adventure.targets = []
+    adventure.target_x = -1
+    adventure.target_y = -1
+    adventure._temp_return = ""
+    adventure.iconSizes = {}
+    adventure.screen_icons = []
+    adventure.initialized = False
 
     build.classify('game/adventure-editor.rpy', None)
     build.classify('game/adventure-editor.rpyc', None)
@@ -314,31 +315,6 @@ init python:
     # </def adventure_point_in_polygon>
 
     # <def>
-    def adventure_checkEvent():
-        # Create text showing the actual coordinates
-        coordinates_text = "Mouse: ({}, {})".format(adventure.mousex, adventure.mousey)
-        return Text(coordinates_text, color="#FF0000", size=30)
-    # </def adventure_checkEvent>
-
-    config.overlay_functions.append(adventure_checkEvent)
-    
-    # Helper functions for screen-based mouse tracking
-    # <def>
-    def adventure_update_mouse_pos():
-        pos = renpy.get_mouse_pos()
-        adventure.mousex = pos[0]
-        adventure.mousey = pos[1]
-    # </def adventure_update_mouse_pos>
-
-    # <def>    
-    def adventure_click_mouse_pos():
-        pos = renpy.get_mouse_pos()
-        adventure.mousex = pos[0]
-        adventure.mousey = pos[1]
-        print("Screen click at: ({}, {})".format(pos[0], pos[1]))
-    # </def adventure_click_mouse_pos>
-
-    # <def>
     def adventure_escape_renpy(text):
         """Escapes characters with special meaning in Ren'Py text."""
         # Ren'Py's string interpolation and text tag delimiters
@@ -390,23 +366,28 @@ init python:
     # <def>
     def adventure_init():
         # <if>
-        if adventure.do_logging:
-            gui.history_allow_tags.update({"b", "i"})
-        # </lif>
-        # <try>
-        try:
-            store.roomData.update(room_definitions)
-        except:
-            print("No room data loaded")
-        # </try>
-        
-        print("This game is built using \"Adventure for RenPy\" by Jeffrey R. Day:")
-        print("A free (MIT Licensed) module to add point-and-click adventure game support to RenPy.")
-        print("https://github.com/phroun/adventure-for-renpy")
-        print("")
-        print("Please consider supporting development of the \"Adventure for RenPy\" module by donating to me on ko-fi:  https://ko-fi.com/jeffday")
+        if not adventure.initialized:
+            # <if>
+            if adventure.do_logging:
+                gui.history_allow_tags.update({"b", "i"})
+            # </lif>
+            # <try>
+            try:
+                store.roomData.update(room_definitions)
+            except:
+                print("No room data loaded")
+            # </try>
+            
+            print("This game is built using \"Adventure for RenPy\" by Jeffrey R. Day:")
+            print("A free (MIT Licensed) module to add point-and-click adventure game support to RenPy.")
+            print("https://github.com/phroun/adventure-for-renpy")
+            print("")
+            print("Please consider supporting development of the \"Adventure for RenPy\" module by donating to me on ko-fi:  https://ko-fi.com/jeffday")
 
-        adventure_refresh_icon_dimensions()
+            adventure_refresh_icon_dimensions()
+            
+            adventure.initialized = True
+        # </if>
     # </def adventure_init>
 
     # <def>

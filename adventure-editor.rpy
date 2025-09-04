@@ -38,10 +38,6 @@ define ADVENTURE_EDITOR_VERSION_REVISION = 9
 
 define editor_width = 126
 define editor_height = 360
-default adventure.editor_last_targids = []
-default adventure.pointId = 0
-default adventure.pointMode = 0
-default adventure.editToolMode = 0
 
 # <init>
 init python:
@@ -50,6 +46,11 @@ init python:
     import renpy.display.render as render
     from renpy.display.core import Displayable
     import math
+
+    adventure.editor_last_targids = []
+    adventure.pointId = 0
+    adventure.pointMode = 0
+    adventure.editToolMode = 0
 
     # <def>
     def adventure_get_polygon_weighted_center(points, density_radius=50):
@@ -1094,10 +1095,10 @@ screen adventure_editor():
                         python:
                             found_icon = True
                             outline = []
-                            outline.append((icon["position"][0] - icon["size"][0]//2, icon["position"][1] - icon["size"][1]//2))
-                            outline.append((icon["position"][0] + icon["size"][0]//2, icon["position"][1] - icon["size"][1]//2))
-                            outline.append((icon["position"][0] + icon["size"][0]//2, icon["position"][1] + icon["size"][1]//2))
-                            outline.append((icon["position"][0] - icon["size"][0]//2, icon["position"][1] + icon["size"][1]//2))
+                            outline.append((icon["position"][0] - 3 - icon["size"][0]//2, icon["position"][1] - 3 - icon["size"][1]//2))
+                            outline.append((icon["position"][0] + 3 + icon["size"][0]//2, icon["position"][1] - 3 - icon["size"][1]//2))
+                            outline.append((icon["position"][0] + 3 + icon["size"][0]//2, icon["position"][1] + 3 + icon["size"][1]//2))
+                            outline.append((icon["position"][0] - 3 - icon["size"][0]//2, icon["position"][1] + 3 + icon["size"][1]//2))
                         # </python>
                         add PolyLine(outline, "#ffff00", 3)
                     # </if>
@@ -1638,7 +1639,7 @@ screen adventure_editor():
                                                 xysize (40, 40)
                                                 padding (0, 0)
                                                 # <add>
-                                                add ("images/free-icons/" + base_list[verb][0]):
+                                                add ("images/" + adventure.iconset + "/" + base_list[verb][0]):
                                                     fit "contain"
                                                     xalign 0.5
                                                     yalign 0.5
