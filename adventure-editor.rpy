@@ -734,7 +734,6 @@ init python:
                 # </case 1>
                 # <case>
                 case 2: # Edit Point Tool
-                    print("Collecting Point")
                     # <if>
                     this_interactable = adventure.room[adventure.interactableId]
                     if (adventure.pointMode == 1 and this_interactable["type"] == "polygon") or len(this_interactable["points"]) == 0:

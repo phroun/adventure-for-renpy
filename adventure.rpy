@@ -44,12 +44,20 @@ init -10 python:
     from renpy.display.core import Displayable
     import math
 
-    ADVENTURE_LOG = DynamicCharacter(">>>", who_color="#999999", what_color="#999999")
+    # <class>
+    class AdventureStore(object):
+        # <def>
+        def __init__(self):
+            self.initialized = False
+        # </def>
+    # </class>
 
+    ADVENTURE_LOG = DynamicCharacter(">>>", who_color="#999999", what_color="#999999")
+    adventure = AdventureStore()
     adventure.do_logging = True
     adventure.first_person = False  # False = You, True = I
     adventure.iconset = "free-icons"
-    adventure.iconzoom = 0.05
+    adventure.iconzoom = 0.1
     adventure.icon_padding = 5
     adventure.active_tool = "auto"
     adventure.toolbar_position = "right"
@@ -181,7 +189,6 @@ init -10 python:
     adventure._temp_return = ""
     adventure.iconSizes = {}
     adventure.screen_icons = []
-    adventure.initialized = False
 
     build.classify('game/adventure-editor.rpy', None)
     build.classify('game/adventure-editor.rpyc', None)
