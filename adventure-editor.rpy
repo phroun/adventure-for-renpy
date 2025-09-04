@@ -203,7 +203,7 @@ init python:
             width: Width of the displayable (optional, auto-calculated if not provided)
             height: Height of the displayable (optional, auto-calculated if not provided)
         """
-        
+        # <def>
         def __init__(self, points, color, width=None, height=None):
             super(AlphaPolygon, self).__init__()
             
@@ -211,6 +211,7 @@ init python:
             self.color = color
             
             # Calculate bounds if width/height not provided
+            # <if>
             if points:
                 min_x = min(point[0] for point in points)
                 max_x = max(point[0] for point in points)
@@ -235,7 +236,10 @@ init python:
                 self.offset_x = 0
                 self.offset_y = 0
                 self.normalized_points = []
+            # </if>
+        # </def>
         
+        # <def>
         def render(self, width, height, st, at):
             # Create a render with the specified dimensions
             r = render.Render(self.width, self.height)
@@ -245,17 +249,21 @@ init python:
             surf = surf.convert_alpha()
             
             # Use the pre-calculated normalized points
+            # <if>
             if len(self.normalized_points) >= 3:  # Need at least 3 points for a polygon
                 pygame.draw.polygon(surf, self.color, self.normalized_points)
-            
+            # </if>
             # Blit the surface to the render
             r.blit(surf, (0, 0))
             
             return r
-        
+        # </def>
+
+        # <def>
         def event(self, ev, x, y, st):
             # Handle events if needed (e.g., clicks within the polygon)
             return None
+        # </def>
     # </class AlphaPolygon>
 
     # <def>
