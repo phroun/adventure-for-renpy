@@ -46,6 +46,15 @@ MIT License - see [LICENSE](LICENSE) file for details.
 
 ## Changelog
 
+### 0.1.11
+- Added basic Toolbar Support for Mode Selection
+
+### 0.1.10
+- Improved handling of icon verbs
+  - We now store the icon name instead of hard-coding the verbs
+- Source code cleanup (named constants instead of magic numbers)
+- Changed layer tool-icons to a more investigative order (examine, speak, operate, go)
+
 ### 0.1.9
 - Allow selecting icons or polygons with the arrow tool
 - Added verb icon palette
@@ -92,21 +101,25 @@ MIT License - see [LICENSE](LICENSE) file for details.
 
 ### Requirements to achieve 1.0:
 
-- Allow Active Scenes to Overload a Room+Verb+Label with a Scene Trigger
-  - Generate an Error in Advance if Specified Room+Verb+Label is Undefined
-- Add support for a Game Toolbar for Mode Selection
-  - Toolbar Radio Buttons
-  - Toolbar Checkboxes
-  - Toolbar Action Buttons
+- Enhance Toolbar Display
 - Add Cascading Flags System (Persistent, Scenes & Rooms)
 - Add Flag Conditionals for Polygons & Overlay Icons
   - Into Editor
   - Into Click Processing
 - Debug Mode to Force-Override Flag Values
-- Task & Notes Journal
+- Allow Active Scenes to Overload a Room+Verb+Label with a Scene Trigger
+  - Generate an Error in Advance if Specified Room+Verb+Label is Undefined
+
+### Upcoming Planned Features:
+
 - Dialogue and Choices Style
+- Task & Notes Journal
 
 ### Feature Requests:
 
 - Fading Overlay Icons
 - Visible Polygon Labels
+- Add support for custom toolbar element:
+  - Toolbar Radio Buttons
+  - Toolbar Checkboxes
+  - Toolbar Action Buttons

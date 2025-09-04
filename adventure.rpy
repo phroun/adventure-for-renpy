@@ -3,7 +3,7 @@
 **
 **   adventure.rpy - Adventure Module (for RenPy)
 **
-**   Version 0.1 revision 9
+**   Version 0.1 revision 11
 **
 **************************************************************************
 This module is released under the MIT License:
@@ -34,7 +34,7 @@ DEALINGS IN THE SOFTWARE.
 
 define ADVENTURE_VERSION_MAJOR = 0
 define ADVENTURE_VERSION_MINOR = 1
-define ADVENTURE_VERSION_REVISION = 9
+define ADVENTURE_VERSION_REVISION = 11
 
 init -10 python:
 
@@ -60,13 +60,14 @@ init -10 python:
     adventure.iconzoom = 0.1
     adventure.icon_padding = 5
     adventure.active_tool = "auto"
-    adventure.toolbar_position = "right"
+    adventure.toolbar_position = "bottom"
     adventure.toolbar_iconset = "free-icons"
     adventure.toolbar_iconzoom = 0.1
-    adventure.toolbar_anchor = 0
-    adventure.toolbar_margin_edge = 10
-    adventure.toolbar_margin_start = 5
-    adventure.toolbar_margin_end = 5
+    adventure.toolbar_anchor = 0.5
+    adventure.toolbar_margin_edge = 40
+    adventure.toolbar_margin_start = 20
+    adventure.toolbar_margin_end = 20
+    adventure.toolbar_bg_opacity = 0.5
     adventure.toolbar_icons = ["auto", "ex", "inventory"]
     adventure.toolbar_menu = "touch_only"
     adventure.toolbar_inventory_expand = True # one button per item? False = bag icon
@@ -176,7 +177,6 @@ init -10 python:
     adventure.modalFreeze = 0
     adventure.mousex = -1
     adventure.mousey = -1
-    adventure.editMode = 0
     adventure.visibleMode = "   "
     adventure.interactableId = 0
     adventure.editorPos = 0
@@ -364,10 +364,13 @@ init -10 python:
             # <for>
             for verb in adventure.verb_icons[tool]:
                 icon_name = "images/" + adventure.iconset + "/" + adventure.verb_icons[tool][verb][0]
-                dim = adventure_get_image_dimensions(icon_name)
-                adventure.iconSizes[icon_name] = dim
+                adventure.iconSizes[icon_name] = adventure_get_image_dimensions(icon_name)
             # </for>
         # </for>
+        icon_name = "images/" + adventure.toolbar_iconset + "/toolbar-active.png"
+        adventure.iconSizes[icon_name] = adventure_get_image_dimensions(icon_name)
+        icon_name = "images/" + adventure.toolbar_iconset + "/toolbar-inactive.png"
+        adventure.iconSizes[icon_name] = adventure_get_image_dimensions(icon_name)
     # </def>
 
     # <def>
@@ -549,7 +552,7 @@ init -10 python:
                             # <for>
                             for noun in possible_nouns:
                                 canonical_verb = adventure_canonize_phrase(verb.lower(), adventure.verb_aliases)
-                                sentences.append((canonical_verb.lower(), noun))
+                                sentences.append((canonical_verb.lower(), noun if noun != "." else ""))
                             # </for>
                         # </for groups>
                     # </if>
@@ -563,9 +566,15 @@ init -10 python:
         for sentence in sentences:
             verb, noun = sentence
             # <if>
-            if cmd.endswith(" " + noun.lower()):
-                remainder = cmd[:-(len(noun)+1)]
-                crem = cmdc[:-(len(noun)+1)]
+            if cmd.endswith(" " + noun.lower()) or noun == "":
+                # <if>
+                if noun == "":
+                    remainder = cmd
+                    crem = cmdc
+                else:
+                    remainder = cmd[:-(len(noun)+1)]
+                    crem = cmdc[:-(len(noun)+1)]
+                # </if>
                 canonical_cmd = adventure_canonize_phrase(crem, adventure.verb_aliases)
                 # <if>
                 if canonical_cmd.lower().startswith(verb):
@@ -596,7 +605,135 @@ init -10 python:
         ADVENTURE_LOG.add_history(kind="adv", what=logtext, who=ADVENTURE_LOG.name)
         return len(matches) != 0
     # </def>
+    
+    # <def>
+    def adventure_set_tool(new_tool):
+        adventure.active_tool = new_tool
+    # <def>
 # </init>
+
+# <screen>
+screen adventure_toolbar():
+
+    python:
+        toolbar_length = 10
+        valid_icons = []
+        vertical = adventure.toolbar_position in ["right", "left"]
+        icon_width = adventure.toolbar_iconzoom * adventure.iconSizes[
+                "images/" + adventure.toolbar_iconset + "/toolbar-inactive.png"
+            ][0]
+        icon_height = adventure.toolbar_iconzoom * adventure.iconSizes[
+                "images/" + adventure.toolbar_iconset + "/toolbar-inactive.png"
+            ][1]
+        icon_length = icon_height if vertical else icon_width
+        icon_depth = icon_width if vertical else icon_height
+        # <for>
+        for icon in adventure.toolbar_icons:
+            # <if>
+            if icon in adventure.tool_icons:
+                valid_icons.append(icon)
+                toolbar_length += icon_length
+            else:
+                pass
+            # </if>
+        # </for>
+        
+        toolbar_flip = 1
+        toolbar_base = 0
+        # <if>
+        if adventure.toolbar_position == "bottom" or adventure.toolbar_position == "right":
+            toolbar_flip = -1
+            toolbar_base = 1
+        # </if>
+
+        # <if>
+        if vertical:
+            toolbar_max_length = config.screen_height - adventure.toolbar_margin_start - adventure.toolbar_margin_end
+            toolbar_width = int(icon_depth + 10)
+            toolbar_height = int(toolbar_length)
+            toolbar_anchor_indent = (toolbar_max_length - toolbar_length) * adventure.toolbar_anchor
+            toolbar_x = int(
+                + toolbar_base * config.screen_width # far edge
+                + toolbar_flip * (adventure.toolbar_margin_edge + toolbar_base*toolbar_width) # optional -depth
+            )
+            toolbar_y = int(
+                + adventure.toolbar_margin_start # or margin
+                + toolbar_anchor_indent # plus indent
+            )
+            # where we begin drawing icons in drawing order
+            toolbar_start_x = toolbar_x + 5
+            toolbar_start_y = toolbar_y + 5
+            toolbar_inc_x = 0
+            toolbar_inc_y = icon_depth
+        else:
+            toolbar_max_length = config.screen_width - adventure.toolbar_margin_start - adventure.toolbar_margin_end
+            toolbar_width = int(toolbar_length)
+            toolbar_height = int(icon_depth + 10)
+            toolbar_anchor_indent = (toolbar_max_length - toolbar_length) * adventure.toolbar_anchor
+            toolbar_y = int(
+                + toolbar_base * config.screen_height # far edge
+                + toolbar_flip * (adventure.toolbar_margin_edge + toolbar_base*toolbar_height) # optional -depth
+            )
+            toolbar_x = int(
+                + adventure.toolbar_margin_start # or margin
+                + toolbar_anchor_indent # plus indent
+            )
+            toolbar_start_x = toolbar_x + 5
+            toolbar_start_y = toolbar_y + 5
+            toolbar_inc_x = icon_depth
+            toolbar_inc_y = 0
+        # </if>
+
+        this_x = toolbar_start_x
+        this_y = toolbar_start_y
+    # </python>
+
+    # <add>
+    
+    add ("images/" + adventure.toolbar_iconset + "/toolbar-bg.png"):
+        fit "fill"
+        xpos toolbar_x
+        ypos toolbar_y
+        xsize toolbar_width
+        ysize toolbar_height
+        alpha adventure.toolbar_bg_opacity
+    # </add>
+
+    # <for>
+    for icon in valid_icons:
+        # <python>
+        python:
+            status = "active" if icon == adventure.active_tool else "inactive"
+        # </python>
+        add ("images/" + adventure.toolbar_iconset + "/toolbar-" + status + ".png"):
+            xpos int(this_x)
+            ypos int(this_y)
+            fit "fill"
+            xsize int(icon_width)
+            ysize int(icon_height)
+        add ("images/" + adventure.toolbar_iconset + "/" + adventure.tool_icons[icon]):
+            xpos int(this_x + icon_width // 2)
+            ypos int(this_y + icon_height // 2)
+            fit "fill"
+            zoom adventure.toolbar_iconzoom
+            xanchor 0.5
+            yanchor 0.5
+        button:
+            xpos int(this_x)
+            ypos int(this_y)
+            xsize int(icon_width)
+            ysize int(icon_height)
+            background None
+            action Function(adventure_set_tool, icon)
+        # <python>
+        python:
+            this_x += toolbar_inc_x
+            this_y += toolbar_inc_y
+        # </python>
+    # </for>
+
+#    adventure.toolbar_draw_order_reversed = False
+# </screen>
 
 # <screen>
 screen adventure_editor():
@@ -610,6 +747,7 @@ screen adventure_underlay():
 
 # <sreen>
 screen adventure_overlay():
+    use adventure_toolbar
     pass
 # </screen adventure_overlay>
 
@@ -647,6 +785,7 @@ screen adventure_interaction():
     for interactableId, interactable in enumerate(adventure.room):
         # <if>
         if interactable["type"] == "icon":
+            $ icons_found = []
             $ icon_verbs = []
             $ icon_verb_images = []
             $ icon_verb_ids = []
@@ -658,15 +797,16 @@ screen adventure_interaction():
                 for tool in tools:
                     # <if>
                     if tool in interactable and tool in adventure.verb_icons:
-                        $ verb = interactable[tool]
+                        $ iconname = interactable[tool]
                         # <if>
-                        if not verb.startswith("/") and not verb in icon_verbs:
+                        if not iconname.startswith("/") and not iconname in icons_found:
                             # <if>
-                            if verb in adventure.verb_icons[tool]:
+                            if iconname in adventure.verb_icons[tool]:
                                 # <python>
                                 python:
-                                    icon_verbs.append(adventure.verb_icons[tool][verb][1])
-                                    icon_verb_images.append(adventure.verb_icons[tool][verb][0])
+                                    icons_found.append(iconname)
+                                    icon_verb_images.append(adventure.verb_icons[tool][iconname][0])
+                                    icon_verbs.append(adventure.verb_icons[tool][iconname][1])
                                     icon_verb_ids.append(interactableId)
                                 # </python>
                             # </if>
@@ -718,7 +858,7 @@ screen adventure_interaction():
         # </if>
     # </for interactables>
     add mousePosition
-    use adventure_editor    
+    use adventure_editor
     use adventure_overlay
 
 # </screen adventure_interaction>
