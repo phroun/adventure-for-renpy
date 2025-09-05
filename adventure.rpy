@@ -34,13 +34,14 @@ DEALINGS IN THE SOFTWARE.
 
 define ADVENTURE_VERSION_MAJOR = 0
 define ADVENTURE_VERSION_MINOR = 2
-define ADVENTURE_VERSION_REVISION = 0
+define ADVENTURE_VERSION_REVISION = 1
 
 define ADVENTURE_UNSET = "unset"
 
 # <init>
 init -10 python:
 
+    import time
     import math
     import pygame
     import renpy.display.render as render
@@ -59,6 +60,7 @@ init -10 python:
     adventure = AdventureStore()
     adventure.do_logging = True
     adventure.first_person = False  # False = You, True = I
+    adventure.action_tip = True
     adventure.iconset = "free-icons"
     adventure.iconzoom = 0.1
     adventure.icon_padding = 5
@@ -81,6 +83,14 @@ init -10 python:
     adventure.scene_flags = set()
     adventure.scene_flags_removed = set()
     adventure.boiled_flags = set()
+
+    adventure.toolbar_hints = {
+        "go": "Go (Walk, Travel)",
+        "ex": "Examine (Look, Listen, etc.)",
+        "op": "Use",
+        "say": "Talk",
+        "auto": "Action",
+    }
 
     adventure.tool_icons = {
         "go": "mode-go.png",
@@ -182,6 +192,7 @@ init -10 python:
     roomData = {}
     adventure.room = []
     adventure.roomName = "demo_room"
+    adventure.action_collector = False
     adventure.editing = False
     adventure.modalFreeze = 0
     adventure.mousex = -1
@@ -199,10 +210,24 @@ init -10 python:
     adventure.iconSizes = {}
     adventure.screen_icons = []
     adventure.debug_show_inactive = False
+    adventure.last_target_stamp = 0
+    adventure.last_targets = []
+    adventure.last_hint = ""
+    adventure.gathering_hints = False
+    adventure.actions = []
 
     build.classify('game/adventure-editor.rpy', None)
     build.classify('game/adventure-editor.rpyc', None)
     build.classify('images/editor-icons/**', None)
+
+    # <def>
+    def adventure_capitalize_first_letter(input_string):
+        # <if>
+        if not input_string:
+            return input_string
+        # </if>
+        return input_string[0].upper() + input_string[1:]
+    # </def>
 
     # <def>
     def adventure_known_flag(flag):
@@ -791,54 +816,73 @@ init -10 python:
         def event(self, ev, x, y, st):
             import pygame
             # <if>
-            if ev.type == pygame.MOUSEBUTTONDOWN:
-                # <if>
-                if ev.button == 1:
-                    adventure.mousex = x
-                    adventure.mousey = y
-                    current_x = adventure.mousex
-                    current_y = adventure.mousey
-                    # <try>
-                    try:
-                        current_handled = adventure_editor_mouse(adventure.mousex, adventure.mousey)
-                        # if current_handled == True:
-                        # Don't consume the event - let it pass through
-                        #    raise renpy.IgnoreEvent()
-                    except:
-                        current_handled = False
-                        adventure.editing = False
-                    # </try>
+            this_stamp = time.time()
+            waited = abs(this_stamp - adventure.last_target_stamp) > 0.1
+            if (ev.type == pygame.MOUSEMOTION and waited) or ev.type == pygame.MOUSEBUTTONDOWN:
+                adventure.last_target_stamp = this_stamp
+                adventure.last_targets = adventure.targets
+                clicked = ev.type == pygame.MOUSEBUTTONDOWN
+                adventure.mousex = x
+                adventure.mousey = y
+                current_x = adventure.mousex
+                current_y = adventure.mousey
+                # <try>
+                try:
                     # <if>
-                    if not current_handled and current_x > 0 and current_y > 0 and adventure.modalFreeze == 0:
-                        adventure.targets = []
-                        # <for>
-                        for i in range(len(adventure.room)):
-                            if (
-                                adventure.room[i]["type"] == "polygon"
-                                and (len(adventure.room[i]["points"]) > 2)
-                                and adventure_check_condition(adventure.room[i]["condition"])
-                            ):
-                                # <if>
-                                if adventure_point_in_polygon(adventure.mousex, adventure.mousey, adventure.room[i]["points"]):
-                                    adventure.targets.append((i, ""))
-                                # </if>
-                            # </if polygon with at least 3 points>
-                        # </for all polygons in room>
-                        # <for>
-                        for icon in adventure.screen_icons:
-                            if icon["active"] and adventure_point_in_icon(current_x, current_y, icon):
-                                adventure.targets = [(icon["interactableId"], icon["verb"])]
+                    if clicked and ev.button == 1:
+                        current_handled = adventure_editor_mouse(adventure.mousex, adventure.mousey)
+                    else:
+                        current_handled = False
+                    # </if>
+                except:
+                    current_handled = False
+                    adventure.editing = False
+                # </try>
+                # <if>
+                if not current_handled and current_x > 0 and current_y > 0 and adventure.modalFreeze == 0:
+                    adventure.targets = []
+                    # <for>
+                    for i in range(len(adventure.room)):
+                        if (
+                            adventure.room[i]["type"] == "polygon"
+                            and (len(adventure.room[i]["points"]) > 2)
+                            and adventure_check_condition(adventure.room[i]["condition"])
+                        ):
+                            # <if>
+                            if adventure_point_in_polygon(adventure.mousex, adventure.mousey, adventure.room[i]["points"]):
+                                adventure.targets.append((i, ""))
                             # </if>
-                        # </for>
+                        # </if polygon with at least 3 points>
+                    # </for all polygons in room>
+                    # <for>
+                    for icon in adventure.screen_icons:
+                        if icon["active"] and adventure_point_in_icon(current_x, current_y, icon):
+                            adventure.targets = [(icon["interactableId"], icon["verb"])]
+                        # </if>
+                    # </for>
+                    if clicked and ev.button == 1:
                         adventure.target_x = adventure.mousex
                         adventure.target_y = adventure.mousey
                         adventure._temp_return = "clicked"
                         adventure.screen_should_exit = True
                         renpy.restart_interaction()
                         raise renpy.IgnoreEvent()
-                    # </if valid point and not modalFreeze>
-                # </if button=1>
-            # </if MOUSEBUTTONDOWN>
+                    elif (adventure.targets != adventure.last_targets) and adventure.action_tip:
+                        adventure.gathering_hints = True
+                        hint = ""
+                        # <for>
+                        for act in adventure.actions:
+                            hint = player_chooses_to(act)
+                            if hint != "":
+                                break
+                        # </for>
+                        if hint != adventure.last_hint:
+                            adventure.last_hint = hint
+                            renpy.restart_interaction()
+                        adventure.gathering_hints = False
+                    # </if>
+                # </if valid point and not modalFreeze>
+            # </if MOUSEBUTTONDOWN or MOUSEMOTION>
         # </def event>
 
         # <def>
@@ -1094,6 +1138,11 @@ init -10 python:
 
     # <def>
     def player_chooses_to(command):
+        # <if>
+        if adventure.action_collector:
+            adventure.actions.append(command)
+            return False
+        # </if>
         cmd_words = command.split()
         cmdc = " ".join(cmd_words)
         cmd = cmdc.lower()
@@ -1148,7 +1197,6 @@ init -10 python:
                 # </if valid tool>
             # <for targets>
         # </for>
-        print(sentences)
         matches = []
 
         # <for>
@@ -1173,7 +1221,7 @@ init -10 python:
             # </if ends with noun>
         # </for>
 
-        highest = 0
+        highest = -1
         bestmatch = ""
         # <for>
         for match, nl in matches:
@@ -1183,16 +1231,21 @@ init -10 python:
                 bestmatch = match
             # </if>
         # </for>
-        
+
         # <if>
-        if adventure.first_person:
-            person = "I "
+        if not adventure.gathering_hints:
+            # <if>
+            if adventure.first_person:
+                person = "I "
+            else:
+                person = "You "
+            # </if>
+            logtext = "{b}{i}" + person + adventure_escape_renpy(bestmatch) + "{/i}{/b}"
+            ADVENTURE_LOG.add_history(kind="adv", what=logtext, who=ADVENTURE_LOG.name)
+            return len(matches) != 0
         else:
-            person = "You "
+            return bestmatch
         # </if>
-        logtext = "{b}{i}" + person + adventure_escape_renpy(bestmatch) + "{/i}{/b}"
-        ADVENTURE_LOG.add_history(kind="adv", what=logtext, who=ADVENTURE_LOG.name)
-        return len(matches) != 0
     # </def>
     
     # <def>
@@ -1313,6 +1366,7 @@ screen adventure_toolbar():
             xsize int(icon_width)
             ysize int(icon_height)
             background None
+            tooltip adventure.toolbar_hints[icon]
             action Function(adventure_set_tool, icon)
         # <python>
         python:
@@ -1456,6 +1510,24 @@ screen adventure_interaction():
     use adventure_editor
     use adventure_overlay
 
+    # <if>
+    if adventure.last_hint != "" or GetTooltip():
+        # <frame>
+        frame:
+            background Solid("#000000", alpha=0.8)
+            xalign 0.5
+            ypos 20
+            padding (20, 10)
+            # <text>
+            text GetTooltip() or adventure_capitalize_first_letter(adventure.last_hint):
+                size 18
+                color "#ffffff"
+                bold True
+                text_align 0.5
+            # </text>
+        # </frame>
+    # </if>
+
 # </screen adventure_interaction>
 
 # <label>
@@ -1463,6 +1535,15 @@ label adventure_input(room):
     # <python>
     python:
         adventure.roomName = room
+        # <if>
+        if adventure.action_tip:
+            adventure.action_collector = not adventure.action_collector
+            # <if>
+            if adventure.action_collector:
+                adventure.actions = []
+                renpy.return_statement(adventure.result);
+            # </if>
+        # </if>
         adventure_init()
         if not adventure.roomName in roomData:
             roomData[adventure.roomName] = []
@@ -1485,3 +1566,38 @@ label adventure_input(room):
     # </python>
 # </label>
 
+screen choice(items):
+    modal True
+    
+    # Black semi-transparent background
+    add "#000000" alpha 0.3
+    
+    # Choice container at bottom
+    frame:
+        xalign 0.5
+        ypos 0.8  # Fixed position from top
+        xsize 800  # Fixed width
+        
+        vbox:
+            spacing 15
+            for i in items:
+                textbutton i.caption:
+                    action i.action
+                    hover_sound "audio/hover.ogg"  # if you have hover sounds
+                    xfill True
+
+# Optional: Custom styling for the choice buttons
+style choice_vbox:
+    xalign 0.5
+    spacing 10
+
+style choice_button:
+    xminimum 400  # Minimum button width
+    xalign 0.5
+
+style choice_button_text:
+    xalign 0.5
+    color "#ffffff"
+    hover_color "#ffff00"  # Yellow on hover
+    size 24
+ 

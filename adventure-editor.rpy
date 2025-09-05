@@ -34,10 +34,10 @@ DEALINGS IN THE SOFTWARE.
 
 define ADVENTURE_EDITOR_VERSION_MAJOR = 0
 define ADVENTURE_EDITOR_VERSION_MINOR = 2
-define ADVENTURE_EDITOR_VERSION_REVISION = 0
+define ADVENTURE_EDITOR_VERSION_REVISION = 1
 
-define editor_width = 126
-define editor_height = 360
+define adventure_editor_width = 126
+define adventure_adventure_editor_height = 360
 
 define ADVENTURE_EDITOR_TOOL_PLAY = 0
 define ADVENTURE_EDITOR_TOOL_SELECT = 1
@@ -1084,7 +1084,7 @@ screen adventure_editor():
             adventure.interactableId = 0
             adventure.lastRoom = adventure.roomName
         # </if>
-        editor_x = 20 if (adventure.editorPos == 0) else (config.screen_width - (editor_width + 20))
+        editor_x = 20 if (adventure.editorPos == 0) else (config.screen_width - (adventure_editor_width + 20))
         adventure.debug_show_inactive = adventure.editorTool != ADVENTURE_EDITOR_TOOL_PLAY
     # </python>
 
@@ -1166,31 +1166,13 @@ screen adventure_editor():
         # </if>
     # </if>
 
-    # <if>
-    if GetTooltip():
-        # <frame>
-        frame:
-            background Solid("#000000", alpha=0.8)
-            xalign 0.5
-            ypos 20
-            padding (20, 10)
-            # <text>
-            text GetTooltip():
-                size 18
-                color "#ffffff"
-                bold True
-                text_align 0.5
-            # </text>
-        # </frame>
-    # </if>
-
     # <frame>
     frame:
         background Frame(Solid("#FFFFFF"), 2, 2, tile=False)
         xpos editor_x - 5
         ypos 80
-        xsize (editor_width + 10)
-        ysize (editor_height + 4)
+        xsize (adventure_editor_width + 10)
+        ysize (adventure_editor_height + 4)
         padding (2, 2)  # Border Thickness
 
         # <vbox>
@@ -1198,7 +1180,7 @@ screen adventure_editor():
             # Title bar with background
             # <button>
             button:
-                background adventure_create_gradient(editor_width + 6, 20, "#00FFBB", "#006633", "vertical")
+                background adventure_create_gradient(adventure_editor_width + 6, 20, "#00FFBB", "#006633", "vertical")
                 action Function(adventure_toggle_editor_pos)
                 tooltip "Toggle Editor Position"
                 xfill True
@@ -1318,8 +1300,8 @@ screen adventure_editor():
                     if adventure.editorTool != ADVENTURE_EDITOR_TOOL_PLAY and len(adventure.room) > 0:
                         # <button>
                         button:
-                            background adventure_create_gradient(editor_width + 6, 20, "#330000", "#660000", "vertical")
-                            hover_background adventure_create_gradient(editor_width + 6, 20, "#660000", "#990000", "vertical")
+                            background adventure_create_gradient(adventure_editor_width + 6, 20, "#330000", "#660000", "vertical")
+                            hover_background adventure_create_gradient(adventure_editor_width + 6, 20, "#660000", "#990000", "vertical")
                             action Function(get_interactable_tag)
                             tooltip "Set Object Tag"
                             xfill True
@@ -1329,9 +1311,9 @@ screen adventure_editor():
                             $ cur_interactabletag = adventure_escape_renpy(adventure.room[adventure.interactableId]["tag"])
                             # <if>
                             if cur_interactabletag == "":
-                                text "[[untagged]" size 12 bold True color "#999999" xpos (editor_width // 2) xanchor 0.5 ypos 0
+                                text "[[untagged]" size 12 bold True color "#999999" xpos (adventure_editor_width // 2) xanchor 0.5 ypos 0
                             else:
-                                text cur_interactabletag size 12 bold False color "#FFFFFF" xpos ((editor_width // 2) - 2) xanchor 0.5 ypos 0
+                                text cur_interactabletag size 12 bold False color "#FFFFFF" xpos ((adventure_editor_width // 2) - 2) xanchor 0.5 ypos 0
                             # </if>
                         # </button>
                     else:
@@ -1398,7 +1380,7 @@ screen adventure_editor():
                                     action NullAction()
                                     background Solid("#666666")  # Transparent
                                     ysize 25
-                                    xsize (editor_width - 25*3) - 1
+                                    xsize (adventure_editor_width - 25*3) - 1
                                 # </button>
                                 # <button>
                                 button:
@@ -1515,7 +1497,7 @@ screen adventure_editor():
                             #    action NullAction()
                             #    background Solid("#666666")  # Transparent
                             #    ysize 25
-                            #    xsize (editor_width - 25*4)
+                            #    xsize (adventure_editor_width - 25*4)
                             # </button>
                         # </hbox>
 
@@ -1630,7 +1612,7 @@ screen adventure_editor():
                                 #    action NullAction()
                                 #    background Solid("#666666")  # Transparent
                                 #    ysize 25
-                                #    xsize (editor_width - 25*4)
+                                #    xsize (adventure_editor_width - 25*4)
                                 # </button>
                             # </if>
                         # </hbox>
@@ -1639,7 +1621,7 @@ screen adventure_editor():
                         button:
                             ypos 4
                             ysize 8
-                            xsize (editor_width)
+                            xsize (adventure_editor_width)
                         # </button>
 
                         # <if>
@@ -1647,8 +1629,8 @@ screen adventure_editor():
                         (vtype == "Icons" and adventure.editorLayer == ADVENTURE_EDITOR_LAYER_COND)):
                             # <button>
                             button:
-                                background adventure_create_gradient(editor_width + 6, 20, "#330000", "#660000", "vertical")
-                                hover_background adventure_create_gradient(editor_width + 6, 20, "#660000", "#990000", "vertical")
+                                background adventure_create_gradient(adventure_editor_width + 6, 20, "#330000", "#660000", "vertical")
+                                hover_background adventure_create_gradient(adventure_editor_width + 6, 20, "#660000", "#990000", "vertical")
                                 action Function(get_interactable_verb)
                                 tooltip ("Set Condition" if adventure.editorLayer == ADVENTURE_EDITOR_LAYER_COND else "Set Verb")
                                 xfill True
@@ -1656,7 +1638,7 @@ screen adventure_editor():
                                 ysize 20
 
                                 $ cur_verb = adventure_escape_renpy(adventure.room[adventure.interactableId][get_edit_tool_mode()])
-                                text cur_verb size 12 bold False color "#FFFFFF" xpos ((editor_width // 2) - 2) xanchor 0.5 ypos 0
+                                text cur_verb size 12 bold False color "#FFFFFF" xpos ((adventure_editor_width // 2) - 2) xanchor 0.5 ypos 0
                             # </button>
                         else:
                             # <if>
@@ -1763,7 +1745,7 @@ screen adventure_editor():
             action Function(nextInteractable)
             tooltip "Select Next Interactable"
             text_size 12
-            xpos (editor_x + editor_width)
+            xpos (editor_x + adventure_editor_width)
             xanchor 1.0
             text_color "#999999"
             text_hover_color "#99ffee"
@@ -1790,7 +1772,7 @@ screen adventure_editor():
                 action Function(adventure_next_point)
                 tooltip "Select Next Point"
                 text_size 12
-                xpos (editor_x + editor_width)
+                xpos (editor_x + adventure_editor_width)
                 xanchor 1.0
                 text_color "#999999"
                 text_hover_color "#99ffee"
@@ -1804,31 +1786,31 @@ screen adventure_editor():
 
     # <if>
     if adventure.editorTool != ADVENTURE_EDITOR_TOOL_PLAY:
-        text ("#" + str(adventure.interactableId + 1) + " (" + interactable_type_text(interactable_type) + ")" ) size 15 xpos (editor_x + editor_width // 2) xanchor 0.5 ypos 138 color "#00cc66"
+        text ("#" + str(adventure.interactableId + 1) + " (" + interactable_type_text(interactable_type) + ")" ) size 15 xpos (editor_x + adventure_editor_width // 2) xanchor 0.5 ypos 138 color "#00cc66"
     # </if>
 
     $ mode_text = adventure_get_mode_text(adventure.editorTool)
-    text mode_text size 12 xpos (editor_x + editor_width // 2) xanchor 0.5 ypos 190 color "#999999"
+    text mode_text size 12 xpos (editor_x + adventure_editor_width // 2) xanchor 0.5 ypos 190 color "#999999"
 
     # <if>
     if adventure.editorTool == ADVENTURE_EDITOR_TOOL_EDIT and interactable_type == "polygon":
-        text ("Pt. " + str(adventure.pointId + 1)) size 15 xpos (editor_x + editor_width // 2) xanchor 0.5 ypos 247 color "#00cc66"
+        text ("Pt. " + str(adventure.pointId + 1)) size 15 xpos (editor_x + adventure_editor_width // 2) xanchor 0.5 ypos 247 color "#00cc66"
     # </if>
 
     # <if>
     if not icon_browse:
         # <text>
         text "Room:":
-            ypos (editor_height)
-            xpos (editor_x + editor_width // 2)
+            ypos (adventure_editor_height)
+            xpos (editor_x + adventure_editor_width // 2)
             xanchor 0.5
             bold True
             size 14
         # </text>
         # <text>
         text "[adventure.roomName]":
-            ypos (editor_height + 15)
-            xpos (editor_x + editor_width // 2)
+            ypos (adventure_editor_height + 15)
+            xpos (editor_x + adventure_editor_width // 2)
             xanchor 0.5
             size 14
         # </text>
@@ -1840,8 +1822,8 @@ screen adventure_editor():
         action Function(export_room_data_readable)
         tooltip "Permanently Save Room Data"
         text_size 12
-        xpos (editor_x + editor_width // 2)
+        xpos (editor_x + adventure_editor_width // 2)
         xanchor 0.5
-        ypos (editor_height + 50)
+        ypos (adventure_editor_height + 50)
     # </textbutton> 
 # </screen adventure_editor>

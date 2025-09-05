@@ -34,7 +34,7 @@ label lounge:
     scene bg lounge
     
     # the following will only persist until the next set_scene
-    adventure_set_scene("night", ADVENTURE_UNSET, "day")
+    adventure_set_scene("int, day")
 
     call adventure_input("lounge")
     if player_chooses_to("examine desk"):
@@ -63,6 +63,10 @@ label lounge:
 MIT License - see [LICENSE](LICENSE) file for details.
 
 ## Changelog
+
+### 0.2.1
+- Added tooltip hint for actions (configurable via adventure.action_tip) 
+- Began improving choice/menu layout.
 
 ### 0.2.0
 - Added Cascading Flags System (Persistent & Scene-Based)
