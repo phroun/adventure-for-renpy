@@ -37,7 +37,7 @@ define ADVENTURE_EDITOR_VERSION_MINOR = 2
 define ADVENTURE_EDITOR_VERSION_REVISION = 1
 
 define adventure_editor_width = 126
-define adventure_adventure_editor_height = 360
+define adventure_editor_height = 360
 
 define ADVENTURE_EDITOR_TOOL_PLAY = 0
 define ADVENTURE_EDITOR_TOOL_SELECT = 1
