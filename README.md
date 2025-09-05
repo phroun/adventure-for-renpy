@@ -23,6 +23,11 @@ If you use this, please support me on ko-fi:  https://ko-fi.com/jeffday
 
 ## Quick Start
 
+Install by placing the contents of the game folder into your RenPy Project's game
+folder, including the iconsets which go in your game/images folder.
+
+You now have access to the adventure system:
+
 ```rpy
 init python:
     adventure_declare_flags([
