@@ -3,7 +3,7 @@
 **
 **   adventure-editor.rpy - Editor for Adventure Module (for RenPy)
 **
-**   Version 0.1 revision 11
+**   Version 0.2 revision 0
 **
 **************************************************************************
 This module is released under the MIT License:
@@ -33,8 +33,8 @@ DEALINGS IN THE SOFTWARE.
 """
 
 define ADVENTURE_EDITOR_VERSION_MAJOR = 0
-define ADVENTURE_EDITOR_VERSION_MINOR = 1
-define ADVENTURE_EDITOR_VERSION_REVISION = 11
+define ADVENTURE_EDITOR_VERSION_MINOR = 2
+define ADVENTURE_EDITOR_VERSION_REVISION = 0
 
 define editor_width = 126
 define editor_height = 360
@@ -329,6 +329,7 @@ init python:
             adventure.editorTool = ADVENTURE_EDITOR_TOOL_PLAY
             adventure.visibleMode = "default"
             adventure.screen_should_exit = True
+            adventure.debug_show_inactive = False
             renpy.restart_interaction()
         # </if>
     # </def set_play_mode>
@@ -339,6 +340,7 @@ init python:
         if adventure.modalFreeze == 0:
             adventure.editorTool = ADVENTURE_EDITOR_TOOL_SELECT
             adventure.visibleMode = get_edit_tool_mode()
+            adventure.debug_show_inactive = True
             adventure.screen_should_exit = True
             renpy.restart_interaction()
         # </if>
@@ -350,6 +352,7 @@ init python:
         if adventure.modalFreeze == 0:
             adventure.editorTool = ADVENTURE_EDITOR_TOOL_EDIT
             adventure.visibleMode = get_edit_tool_mode()
+            adventure.debug_show_inactive = True
             adventure.pointMode = 0
             adventure.screen_should_exit = True
             renpy.restart_interaction()
@@ -1082,6 +1085,7 @@ screen adventure_editor():
             adventure.lastRoom = adventure.roomName
         # </if>
         editor_x = 20 if (adventure.editorPos == 0) else (config.screen_width - (editor_width + 20))
+        adventure.debug_show_inactive = adventure.editorTool != ADVENTURE_EDITOR_TOOL_PLAY
     # </python>
 
     $ adventure.visibleMode = "default" if adventure.editorTool == ADVENTURE_EDITOR_TOOL_PLAY else get_edit_tool_mode()
@@ -1091,8 +1095,9 @@ screen adventure_editor():
         for i in range(len(adventure.room)):
             # <if>
             if (i != adventure.interactableId):
-                add AlphaPolygon(adventure.room[i]["points"], (0, 0, 255, 128))
-                add PolyLine(adventure.room[i]["points"], "#0000ff", 2)
+                $ this_active = adventure_check_condition(adventure.room[i]["condition"])
+                add AlphaPolygon(adventure.room[i]["points"], (0, 0, 255, 128) if this_active else (64, 64, 64, 128))
+                add PolyLine(adventure.room[i]["points"], "#0000ff" if this_active else "#666666", 2)
                 $ center_x, center_y = adventure_get_polygon_weighted_center(adventure.room[i]["points"])
                 # <text>
                 text adventure.room[i]["tag"]:
@@ -1110,10 +1115,11 @@ screen adventure_editor():
             $ this_interactable = adventure.room[adventure.interactableId]
             # <if>
             if this_interactable["type"] == "polygon":
-                $ current_polygon = AlphaPolygon(this_interactable["points"], (255, 0, 0, 128))
+                $ this_active = adventure_check_condition(this_interactable["condition"])
+                $ current_polygon = AlphaPolygon(this_interactable["points"], (255, 0, 0, 128) if this_active else (128, 0, 0, 128))
                 # show expression current_polygon as curent_poly
                 add current_polygon
-                add PolyLine(this_interactable["points"], "#ff0000", 3)
+                add PolyLine(this_interactable["points"], "#ff0000" if this_active else "#996666", 3)
             # </if polygon>
             if this_interactable["type"] == "icon" and adventure.editorTool == ADVENTURE_EDITOR_TOOL_SELECT:
                 # <for>

@@ -3,7 +3,7 @@
 **
 **   adventure.rpy - Adventure Module (for RenPy)
 **
-**   Version 0.1 revision 11
+**   Version 0.2 revision 0
 **
 **************************************************************************
 This module is released under the MIT License:
@@ -33,9 +33,12 @@ DEALINGS IN THE SOFTWARE.
 """
 
 define ADVENTURE_VERSION_MAJOR = 0
-define ADVENTURE_VERSION_MINOR = 1
-define ADVENTURE_VERSION_REVISION = 11
+define ADVENTURE_VERSION_MINOR = 2
+define ADVENTURE_VERSION_REVISION = 0
 
+define ADVENTURE_UNSET = "unset"
+
+# <init>
 init -10 python:
 
     import math
@@ -72,6 +75,12 @@ init -10 python:
     adventure.toolbar_menu = "touch_only"
     adventure.toolbar_inventory_expand = True # one button per item? False = bag icon
     adventure.toolbar_draw_order_reversed = False
+    adventure.all_known_flags = set()
+    adventure.flag_descriptions = {}
+    adventure.persistent_flags = set()
+    adventure.scene_flags = set()
+    adventure.scene_flags_removed = set()
+    adventure.boiled_flags = set()
 
     adventure.tool_icons = {
         "go": "mode-go.png",
@@ -189,10 +198,586 @@ init -10 python:
     adventure._temp_return = ""
     adventure.iconSizes = {}
     adventure.screen_icons = []
+    adventure.debug_show_inactive = False
 
     build.classify('game/adventure-editor.rpy', None)
     build.classify('game/adventure-editor.rpyc', None)
     build.classify('images/editor-icons/**', None)
+
+    # <def>
+    def adventure_known_flag(flag):
+        return flag.lower() in adventure.all_known_flags
+    # </def>
+
+    # <def>
+    def adventure_declare_flag(flag, description=None):
+        if adventure_known_flag(flag):
+            new_flag = (flag, description)
+            existing_flag = adventure.flag_descriptions[flag.lower()]
+            raise ValueError(f"Flag already declared while trying to declare {new_flag}.  Conflicting flag: {existing_flag}")
+        else:
+            adventure.all_known_flags.add(flag.lower())
+            adventure.flag_descriptions[flag.lower()] = (flag, description)
+        # </if>
+    # </def adventure_declare_flag>
+
+    # <def>
+    def adventure_declare_flags(flag_list):
+        # <for>
+        for item in flag_list:
+            # <if>
+            if isinstance(item, str):
+                adventure_declare_flag(item, None)
+            elif isinstance(item, tuple):
+                # <if>
+                if len(item) == 1:
+                    # Single-element tuple - use as flag name, description is None
+                    adventure_declare_flag(item[0], None)
+                else:
+                    flag, description = item
+                    adventure_declare_flag(flag, description)
+                # </if>
+            else:
+                raise ValueError(f"Item must be a string or tuple, got: {type(item).__name__}")
+            # </if>
+        # </for>
+    # </def adventure_declare_flags>
+
+    # <def>
+    def adventure_flags(flag_string):
+        # <if>
+        if not flag_string.strip():
+            return set()
+        # </if>
+        # Split on both comma and semicolon, then clean up whitespace
+        raw_flags = []
+        # <for>
+        for part in flag_string.replace(';', ',').split(','):
+            cleaned = part.strip()
+            # <if>
+            if cleaned:
+                raw_flags.append(cleaned)
+            # </if>
+        # </for>
+        result_set = set()
+        unknown_flags = set()
+        # <for>
+        for flag in raw_flags:
+            normalized_flag = flag.lower()
+            # <if>
+            if adventure_known_flag(normalized_flag):
+                result_set.add(normalized_flag)
+            else:
+                unknown_flags.add(flag)  # Keep original case for error message
+            # </if>
+        # </for>
+        # <if>
+        if unknown_flags:
+            raise ValueError(f"Unknown flags: {unknown_flags}")
+        # </if>
+        return result_set
+    # </def adventure_flags>
+    
+    # <def>
+    def adventure_set_set(target_set, flags):
+        """
+        Add flags to a target set, handling various input formats.
+        
+        Args:
+            target_set: Set to add flags to (modified in place)
+            flags: Can be:
+                   - A set of flag names
+                   - A list of flag names  
+                   - A single string (either a flag name or comma/semicolon-separated list)
+        
+        Raises:
+            ValueError: If any flags are unknown (from adventure_flags validation)
+        """
+        # <if>
+        if isinstance(flags, set):
+            # It's already a set - validate each flag and add to target
+            unknown_flags = set()
+            # <for>
+            for flag in flags:
+                normalized_flag = flag.lower()
+                # <if>
+                if adventure_known_flag(normalized_flag):
+                    target_set.add(normalized_flag)
+                else:
+                    unknown_flags.add(flag)
+                # </if>
+            # </for>
+            
+            # <if>
+            if unknown_flags:
+                raise ValueError(f"Unknown flags: {unknown_flags}")
+            # </if>
+        elif isinstance(flags, list):
+            # It's a list - treat each item as a separate flag
+            unknown_flags = set()
+            # <for>
+            for flag in flags:
+                # <if>
+                if not isinstance(flag, str):
+                    raise ValueError(f"List items must be strings, got: {type(flag).__name__}")
+                # </if>
+                
+                normalized_flag = flag.lower()
+                # <if>
+                if adventure_known_flag(normalized_flag):
+                    target_set.add(normalized_flag)
+                else:
+                    unknown_flags.add(flag)
+                # </if>
+            # </for>
+            # <if>
+            if unknown_flags:
+                raise ValueError(f"Unknown flags: {unknown_flags}")
+            # </if>
+        elif isinstance(flags, str):
+            parsed_flags = adventure_flags(flags)
+            target_set.update(parsed_flags)
+        else:
+            raise ValueError(f"Flags parameter must be a set, list, or string, got: {type(flags).__name__}")
+        # </if>
+    # </def adventure_set_set>
+
+    # <def>
+    def adventure_unset_set(target_set, flags):
+        """
+        Remove flags from a target set, handling various input formats.
+        
+        Args:
+            target_set: Set to remove flags from (modified in place)
+            flags: Can be:
+                   - A set of flag names
+                   - A list of flag names  
+                   - A single string (either a flag name or comma/semicolon-separated list)
+        
+        Raises:
+            ValueError: If any flags are unknown (from adventure_flags validation)
+        """
+        # <if>
+        if isinstance(flags, set):
+            # It's already a set - validate each flag and add to target
+            unknown_flags = set()
+            # <for>
+            for flag in flags:
+                normalized_flag = flag.lower()
+                # <if>
+                if adventure_known_flag(normalized_flag):
+                    target_set.discard(normalized_flag)
+                else:
+                    unknown_flags.add(flag)
+                # </if>
+            # </for>
+            
+            # <if>
+            if unknown_flags:
+                raise ValueError(f"Unknown flags: {unknown_flags}")
+            # </if>
+        elif isinstance(flags, list):
+            # It's a list - treat each item as a separate flag
+            unknown_flags = set()
+            # <for>
+            for flag in flags:
+                # <if>
+                if not isinstance(flag, str):
+                    raise ValueError(f"List items must be strings, got: {type(flag).__name__}")
+                # </if>
+                
+                normalized_flag = flag.lower()
+                # <if>
+                if adventure_known_flag(normalized_flag):
+                    target_set.discard(normalized_flag)
+                else:
+                    unknown_flags.add(flag)
+                # </if>
+            # </for>
+            # <if>
+            if unknown_flags:
+                raise ValueError(f"Unknown flags: {unknown_flags}")
+            # </if>
+        elif isinstance(flags, str):
+            # It's a string - use adventure_flags to handle it
+            parsed_flags = adventure_flags(flags)
+            # <for>
+            for flag in parsed_flags:
+                target_set.discard(flag)
+            # </for>
+        else:
+            raise ValueError(f"Flags parameter must be a set, list, or string, got: {type(flags).__name__}")
+        # </if>
+    # </def adventure_unset_set>
+    
+    # <def>
+    def adventure_set(flags):
+       adventure_set_set(adventure.persistent_flags, flags)
+       adventure_boil_flags()
+    # </def adventure_set>
+
+    # <def>
+    def adventure_unset(flags):
+       adventure_unset_set(adventure.persistent_flags, flags)
+       adventure_boil_flags()
+    # </def adventure_unset>
+    
+    # <def>
+    def adventure_set_scene(flags, special="unset", unset_flags=None):
+       adventure.scene_flags.clear()
+       adventure.scene_flags_removed.clear()
+       adventure_set_set(adventure.scene_flags, flags)
+       # <if>
+       if special=="unset" and unset_flags != None:
+           adventure_set_set(adventure.scene_flags_removed, unset_flags)
+       # </if>
+       adventure_boil_flags()
+    # </def>
+    
+    # <def>
+    def adventure_boil_flags():
+       adventure.boiled_flags = (adventure.persistent_flags | adventure.scene_flags) - adventure.scene_flags_removed
+    # </def>
+
+    def adventure_validate_condition(condition, all_known_flags=None):
+        """
+        Validate a flag condition's syntax and check for unknown flags.
+        
+        Args:
+            condition: String condition to validate
+            all_known_flags: Set of known flag names (case-insensitive), or None to skip flag checking
+        
+        Returns:
+            Tuple of (valid, unknown_flags)
+            - valid: True if syntax is correct
+            - unknown_flags: Set of flag names that aren't in all_known_flags
+        """
+        # <if>
+        if not condition.strip():
+            return True, set()
+        # </if>
+        
+        # First, extract all potential flag names regardless of syntax
+        unknown_flags = set()
+        # <if>
+        if all_known_flags is not None:
+            # <try>
+            try:
+                tokens = adventure_condition_tokenize(condition)
+                known_lower = {flag.lower() for flag in all_known_flags}
+                
+                # Find all FLAG tokens and check if they're unknown
+                # <for>
+                for token_type, token_value in tokens:
+                    # <if>
+                    if token_type == 'FLAG' and token_value.lower() not in known_lower:
+                        unknown_flags.add(token_value)
+                    # </if>
+                # </for>
+            except ValueError:
+                # Even if tokenization fails, we still want to try to extract flag-like strings
+                unknown_flags = adventure_extract_flag_like_strings(condition, all_known_flags)
+            # </try>
+        
+        # Now validate syntax
+        # <try>
+        try:
+            tokens = adventure_condition_tokenize(condition)
+            validator = AdventureConditionValidator(tokens, all_known_flags)
+            validator.process()
+            return True, unknown_flags
+        except ValueError:
+            return False, unknown_flags
+        # </try>
+    # </def adventure_validate_condition>
+
+    # <def>
+    def adventure_extract_flag_like_strings(condition, all_known_flags):
+        """Extract potential flag names from malformed expressions"""
+        unknown_flags = set()
+        known_lower = {flag.lower() for flag in all_known_flags}
+        
+        # Simple character-by-character extraction of identifier-like strings
+        i = 0
+        # <while>
+        while i < len(condition):
+            char = condition[i]
+            
+            # If we find the start of an identifier
+            # <if>
+            if char.isalpha() or char == '_':
+                start = i
+                # Continue while we have valid identifier characters
+                # <while>
+                while i < len(condition) and (condition[i].isalnum() or condition[i] in '_.'):
+                    i += 1
+                # </while>
+                
+                potential_flag = condition[start:i]
+                # <if>
+                if potential_flag.lower() not in known_lower:
+                    unknown_flags.add(potential_flag)
+                # </if>
+            else:
+                i += 1
+            # </if>
+        # </while>
+        
+        return unknown_flags
+    # </def adventure_extract_flag_like_strings>
+
+    # <def>
+    def adventure_check_condition(condition, flag_set=None):
+        """
+        Check if a flag condition is satisfied by the given flag set.
+        
+        Args:
+            flag_set: Set/iterable of flag names
+            condition: String like "night & (friday | saturday) | !monday"
+        
+        Returns:
+            Boolean result
+        """
+        # <if>
+        if flag_set is None:
+            flag_set = adventure.boiled_flags
+        # </if>
+        # <if>
+        if not condition.strip():
+            return True
+        # </if>
+        
+        normalized_flags = {flag.lower() for flag in flag_set}
+        tokens = adventure_condition_tokenize(condition)
+        evaluator = AdventureConditionEvaluator(tokens, normalized_flags)
+        return evaluator.process()
+    # </def adventure_check_condition>
+
+    # <def>
+    def adventure_condition_tokenize(condition):
+        tokens = []
+        i = 0
+        # <while>
+        while i < len(condition):
+            char = condition[i]
+            # <if>
+            if char.isspace():
+                i += 1
+                continue
+            # </if>
+            # <if>
+            if char in '&|!()':
+                # <if>
+                if char == '&':
+                    tokens.append(('AND', char))
+                elif char == '|':
+                    tokens.append(('OR', char))
+                elif char == '!':
+                    tokens.append(('NOT', char))
+                elif char == '(':
+                    tokens.append(('LPAREN', char))
+                elif char == ')':
+                    tokens.append(('RPAREN', char))
+                # </if>
+                i += 1
+            # Handle flag names (start with letter or underscore)
+            elif char.isalpha() or char == '_':
+                start = i
+                # Continue while we have valid flag name characters
+                # <while>
+                while i < len(condition) and (condition[i].isalnum() or condition[i] in '_.'):
+                    i += 1
+                # </while>
+                flag_name = condition[start:i]
+                tokens.append(('FLAG', flag_name))
+            else:
+                raise ValueError(f"Invalid character: '{char}' at position {i}")
+            # </if>
+        
+        return tokens
+    # </def adventure_condition_tokenize>
+
+    # <class>
+    class AdventureBaseConditionProcessor:
+        # <def>
+        def __init__(self, tokens):
+            self.tokens = tokens
+            self.pos = 0
+        # </def>
+        # <def>
+        def current_token(self):
+            # <if>
+            if self.pos < len(self.tokens):
+                return self.tokens[self.pos]
+            # </if>
+            return None
+        # </def>
+        # <def>
+        def consume(self, expected_type=None):
+            token = self.current_token()
+            # <if>
+            if token and (expected_type is None or token[0] == expected_type):
+                self.pos += 1
+                return token
+            # </if>
+            return None
+        # </def>
+        # <def>
+        def process(self):
+            """Main entry point - subclasses should call this"""
+            result = self.process_or()
+            # <if>
+            if self.current_token() is not None:
+                raise ValueError(f"Unexpected token: {self.current_token()}")
+            # </if>
+            return result
+        # </def>
+        # <def>
+        def process_or(self):
+            """Process OR expressions (lowest precedence)"""
+            left = self.process_and()
+            # <while>
+            while self.current_token() and self.current_token()[0] == 'OR':
+                self.consume('OR')
+                right = self.process_and()
+                left = self.combine_or(left, right)
+            # </while>
+            
+            return left
+        # </def>
+        # <def>
+        def process_and(self):
+            """Process AND expressions (higher precedence than OR)"""
+            left = self.process_not()
+            # <while>
+            while self.current_token() and self.current_token()[0] == 'AND':
+                self.consume('AND')
+                right = self.process_not()
+                left = self.combine_and(left, right)
+            # </while>
+            return left
+        # </def>
+        # <def>
+        def process_not(self):
+            """Process NOT expressions (highest precedence except parentheses)"""
+            # <if>
+            if self.current_token() and self.current_token()[0] == 'NOT':
+                self.consume('NOT')
+                operand = self.process_primary()
+                return self.combine_not(operand)
+            else:
+                return self.process_primary()
+            # </if>
+        # </def>
+        # <def>
+        def process_primary(self):
+            """Process primary expressions (flags and parentheses)"""
+            token = self.current_token()
+            # <if>
+            if not token:
+                raise ValueError("Unexpected end of expression")
+            # </if>
+            # <if>
+            if token[0] == 'FLAG':
+                flag_name = self.consume('FLAG')[1]
+                return self.handle_flag(flag_name)
+            elif token[0] == 'LPAREN':
+                self.consume('LPAREN')
+                result = self.process_or()  # Start fresh with OR precedence
+                # <if>
+                if not self.consume('RPAREN'):
+                    raise ValueError("Missing closing parenthesis")
+                # </if>
+                return result
+            else:
+                raise ValueError(f"Unexpected token: {token}")
+            # </if>
+        # </def>
+        
+        # Abstract methods that subclasses must implement
+        # <def>
+        def combine_or(self, left, right):
+            raise NotImplementedError
+        # </def>
+        # <def>
+        def combine_and(self, left, right):
+            raise NotImplementedError
+        # </def>
+        # <def>
+        def combine_not(self, operand):
+            raise NotImplementedError
+        # </def>
+        # <def>
+        def handle_flag(self, flag_name):
+            raise NotImplementedError
+        # </def>
+    # </class AdventureBaseConditionProcessor>
+
+    # <class>
+    class AdventureConditionValidator(AdventureBaseConditionProcessor):
+        """Validates syntax only - unknown flags are handled separately"""
+        # <def>
+        def __init__(self, tokens, known_flags):
+            super().__init__(tokens)
+        # </def>
+        
+        # <def>
+        def combine_or(self, left, right):
+            return None
+        # </def>
+        
+        # <def>
+        def combine_and(self, left, right):
+            return None
+        # </def>
+        
+        # <def>
+        def combine_not(self, operand):
+            return None
+        # </def>
+        
+        # <def>
+        def handle_flag(self, flag_name):
+            return None
+        # </def>
+        
+        # <def>
+        def process(self):
+            """Override to return nothing - we just want to validate syntax"""
+            super().process()
+            return None
+        # </def>
+    # </class AdventureConditionValidator>
+
+    # <class>
+    class AdventureConditionEvaluator(AdventureBaseConditionProcessor):
+        """Evaluates conditions against a flag set"""
+        # <def>
+        def __init__(self, tokens, flag_set):
+            super().__init__(tokens)
+            self.flag_set = flag_set
+        # </def>
+        
+        # <def>
+        def combine_or(self, left, right):
+            return left or right
+        # </def>
+        
+        # <def>
+        def combine_and(self, left, right):
+            return left and right
+        # </def>
+        
+        # <def>
+        def combine_not(self, operand):
+            return not operand
+        # </def>
+        
+        # <def>
+        def handle_flag(self, flag_name):
+            return flag_name.lower() in self.flag_set
+        # </def>
+    # </class AdventureConditionEvaluator>
 
     # <class>
     class getMousePosition(renpy.Displayable):
@@ -228,7 +813,11 @@ init -10 python:
                         adventure.targets = []
                         # <for>
                         for i in range(len(adventure.room)):
-                            if adventure.room[i]["type"] == "polygon" and (len(adventure.room[i]["points"]) > 2):
+                            if (
+                                adventure.room[i]["type"] == "polygon"
+                                and (len(adventure.room[i]["points"]) > 2)
+                                and adventure_check_condition(adventure.room[i]["condition"])
+                            ):
                                 # <if>
                                 if adventure_point_in_polygon(adventure.mousex, adventure.mousey, adventure.room[i]["points"]):
                                     adventure.targets.append((i, ""))
@@ -237,7 +826,7 @@ init -10 python:
                         # </for all polygons in room>
                         # <for>
                         for icon in adventure.screen_icons:
-                            if adventure_point_in_icon(current_x, current_y, icon):
+                            if icon["active"] and adventure_point_in_icon(current_x, current_y, icon):
                                 adventure.targets = [(icon["interactableId"], icon["verb"])]
                             # </if>
                         # </for>
@@ -785,6 +1374,7 @@ screen adventure_interaction():
     for interactableId, interactable in enumerate(adventure.room):
         # <if>
         if interactable["type"] == "icon":
+            $ this_active = adventure_check_condition(interactable["condition"])
             $ icons_found = []
             $ icon_verbs = []
             $ icon_verb_images = []
@@ -829,14 +1419,18 @@ screen adventure_interaction():
                     $ verbimage = icon_verb_images[i]
                     $ this_verb = icon_verbs[i]
                     $ this_id = icon_verb_ids[i]
-                    # <add>
-                    add ("images/" + adventure.iconset + "/" + verbimage):
-                        xpos int(x + xoffs)
-                        ypos y
-                        xanchor 0
-                        yanchor 0.5
-                        zoom (adventure.iconzoom)
-                    # </add>
+                    # <if>
+                    if this_active or adventure.debug_show_inactive:
+                        # <add>
+                        add ("images/" + adventure.iconset + "/" + verbimage):
+                            xpos int(x + xoffs)
+                            ypos y
+                            xanchor 0
+                            yanchor 0.5
+                            alpha (1 if this_active else 0.3)
+                            zoom (adventure.iconzoom)
+                        # </add>
+                    # </if>
                     # <python>
                     python:
                         this_size_raw = adventure.iconSizes["images/" + adventure.iconset + "/" + verbimage]
@@ -846,6 +1440,7 @@ screen adventure_interaction():
                         )
                         adventure.screen_icons.append({
                             "interactableId": this_id,
+                            "active": this_active,
                             "verb": this_verb,
                             "tag": interactable["tag"],
                             "position": (int(x + xoffs + (this_size[0]//2)), y),
@@ -855,7 +1450,7 @@ screen adventure_interaction():
                     # </python>
                 # </for>
             # </for>
-        # </if>
+        # </if icon>
     # </for interactables>
     add mousePosition
     use adventure_editor
@@ -889,3 +1484,4 @@ label adventure_input(room):
         # </if>
     # </python>
 # </label>
+

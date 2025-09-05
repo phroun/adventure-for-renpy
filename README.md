@@ -24,9 +24,27 @@ If you use this, please support me on ko-fi:  https://ko-fi.com/jeffday
 ## Quick Start
 
 ```rpy
+init python:
+    adventure_declare_flags([
+      ("Day", "Present when it is daytime"),
+      ("Night", "Present when it is nighttime"),
+    ])
+
 label lounge:
     scene bg lounge
+    
+    # the following will only persist until the next set_scene
+    adventure_set_scene("night", ADVENTURE_UNSET, "day")
+
     call adventure_input("lounge")
+    if player_chooses_to("examine desk"):
+        if adventure_check_condition("night"):
+           "A card next to a bell says, \"ring for service\""
+        else:
+           "The hotel clerk stands behind the desk."
+    if player_chooses_to("use bell"):
+       "You ring the bell and wait a moment.  No one arrives."
+    
     if player_chooses_to("enter the lift"):
         "The elevator door is jammed."
     jump lounge
@@ -45,6 +63,11 @@ label lounge:
 MIT License - see [LICENSE](LICENSE) file for details.
 
 ## Changelog
+
+### 0.2.0
+- Added Cascading Flags System (Persistent & Scene-Based)
+- Implemented Flag Conditionals for Polygons & Overlay Icons
+  - Supports & AND, | OR, ! NOT, and () parenthesis in evaluation
 
 ### 0.1.11
 - Added basic Toolbar Support for Mode Selection
@@ -77,7 +100,7 @@ MIT License - see [LICENSE](LICENSE) file for details.
 ### 0.1.5
 - Added adventure_overlay and adventure_underlay screens
   - (to be redefined by game authors who need advanced customization)
-  
+
 ### 0.1.4
 - Added "Play" Icon to Hide Editor Polygons
 - Added Point Editor Mode to Edit Existing Points
@@ -102,10 +125,7 @@ MIT License - see [LICENSE](LICENSE) file for details.
 ### Requirements to achieve 1.0:
 
 - Enhance Toolbar Display
-- Add Cascading Flags System (Persistent, Scenes & Rooms)
-- Add Flag Conditionals for Polygons & Overlay Icons
-  - Into Editor
-  - Into Click Processing
+- Room-Persistent Flags (Useful for Inventory-Related Tasks)
 - Debug Mode to Force-Override Flag Values
 - Allow Active Scenes to Overload a Room+Verb+Label with a Scene Trigger
   - Generate an Error in Advance if Specified Room+Verb+Label is Undefined
