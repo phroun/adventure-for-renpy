@@ -1,6 +1,7 @@
 # @phroun/adventure-for-renpy
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
 [![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/F2F61JR2B4)
 
 A module to add point-and-click adventure game support to RenPy.
