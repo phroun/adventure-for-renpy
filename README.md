@@ -12,17 +12,34 @@ If you use this, please support me on ko-fi:  https://ko-fi.com/jeffday
 
 ## Features
 
-### Locations (completely independent from Ren'Py Labels or Screens) which are activated simply by using `call adventure_input("hotel lobby")`
-### **Location Editor UI**: The presence of adventure-editor.rpy (not shipped  in a game build) enables the editor UI.
-### Natural Language Matching:  `if player_chooses_to("speak to receptionist"):`
+### Locations
+
+An interactive location is invoked simply by using `call adventure_input("hotel lobby")`
+Locations are completely independent from the Ren'Py concepts of Labels or Screens.
+
+### Location Editor UI
+
+The presence of adventure-editor.rpy (not shipped  in a game build) enables the editor UI.
+
+### Natural Language Matching
+
+```
+if player_chooses_to("speak to receptionist"):
+    "Would you like to check in?"
+```
+
 ### Automatic history logging of player interactions in either first or second person:
 
-- `>>> You speak to receptionist.`
+```
+>>> You speak to receptionist.
+```
 
 ### Two systems of clickable elements ("interactables"), which can either be used independently or both together:
 
-- **Clickable Polygons**: Define multiple clickable polygons per room, each of which can have customized verb per "layer", or can match with the default group of verbs for a layer.
-- **Verb Overlay Icons**: Define multiple layers of icons for interaction, each of which has one or more potential verb meanings assigned to it.
+- **Clickable Polygons**
+  - Define multiple clickable polygons per room, each of which can have customized verb per "layer", or can match with the default group of verbs for a layer.
+- **Verb Overlay Icons**
+  - Define multiple layers of icons for interaction, each of which has one or more potential verb meanings assigned to it.
 
 ### Optional in-game **Toolbar** with Configurable "Verb Group" Tools
 
