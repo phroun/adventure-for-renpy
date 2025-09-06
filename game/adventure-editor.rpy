@@ -789,7 +789,6 @@ init python:
                 # </case ADVENTURE_EDITOR_TOOL_EDIT>
                 # <case>
                 case _:
-                    print("DEFAULT TOOL")
                     return False
                 # </case default>
             # </match>
@@ -932,7 +931,7 @@ init python:
     
     # <def>
     def adventure_editor_input():
-        print("editor input")
+        pass
     # </def>
 
     # <def>
@@ -1829,3 +1828,22 @@ screen adventure_editor():
         ypos (adventure.editor_top + adventure_editor_height - 60 + 30)
     # </textbutton> 
 # </screen adventure_editor>
+
+# </init>
+init 900 python:
+    # <if>
+    if adventure.generate_icons:
+        print("Converting icon ", adventure.game_icon, "...")
+        # <try>
+        try:
+            adventure_create_multi_size_icns(os.path.join(renpy.config.gamedir, adventure.game_icon), os.path.join(renpy.config.basedir, "icon.icns"))
+            print("Created icon.icns")
+            adventure_create_multi_size_ico(os.path.join(renpy.config.gamedir, adventure.game_icon), os.path.join(renpy.config.basedir, "icon.ico"))
+            print("Created icon.ico")
+            adventure_create_scaled_png(os.path.join(renpy.config.gamedir, adventure.game_icon), os.path.join(renpy.config.gamedir, "gui/window_icon.png"), 128, 128)
+        except Exception as e:
+            print("An error occurred: {}".format(str(e)))
+            pass
+        # </try>
+    # </if>
+# </init>

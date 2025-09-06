@@ -3,7 +3,7 @@
 **
 **   adventure.rpy - Adventure Module (for Ren'Py)
 **
-**   Version 0.2 revision 2
+**   Version 0.2 revision 3
 **
 **************************************************************************
 This module is released under the MIT License:
@@ -34,7 +34,7 @@ DEALINGS IN THE SOFTWARE.
 
 define ADVENTURE_VERSION_MAJOR = 0
 define ADVENTURE_VERSION_MINOR = 2
-define ADVENTURE_VERSION_REVISION = 2
+define ADVENTURE_VERSION_REVISION = 3
 
 define ADVENTURE_UNSET = "unset"
 
@@ -58,6 +58,16 @@ init -10 python:
 
     ADVENTURE_LOG = DynamicCharacter(">>>", who_color="#999999", what_color="#999999")
     adventure = AdventureStore()
+
+    # Automatic conversion and installation of App/.exe and Window icon will only
+    # function when both adventure-editor.rpy and and adventure-utils.rpy are present.
+
+    adventure.generate_icons = True
+    adventure.game_icon = "images/editor-icons/about.png"
+
+    # The following settings can also be overriden in your script's init
+    # python section:
+
     adventure.do_logging = True
     adventure.first_person = False  # False = You, True = I
     adventure.action_tip = True
@@ -77,12 +87,6 @@ init -10 python:
     adventure.toolbar_menu = "touch_only"
     adventure.toolbar_inventory_expand = True # one button per item? False = bag icon
     adventure.toolbar_draw_order_reversed = False
-    adventure.all_known_flags = set()
-    adventure.flag_descriptions = {}
-    adventure.persistent_flags = set()
-    adventure.scene_flags = set()
-    adventure.scene_flags_removed = set()
-    adventure.boiled_flags = set()
 
     adventure.toolbar_hints = {
         "go": "Go (Walk, Travel)",
@@ -188,8 +192,16 @@ init -10 python:
              "*go", "*op", "*say", ".*ex"
          ]
     }
+    
+    # The following are used internally to track state and configuration:
 
     roomData = {}
+    adventure.all_known_flags = set()
+    adventure.flag_descriptions = {}
+    adventure.persistent_flags = set()
+    adventure.scene_flags = set()
+    adventure.scene_flags_removed = set()
+    adventure.boiled_flags = set()
     adventure.room = []
     adventure.roomName = "demo_room"
     adventure.action_collector = False
@@ -903,21 +915,6 @@ init -10 python:
     store.mousePosition = getMousePosition()
     
     # <def>
-    def adventure_fix_message():
-        if not "adventure-for-renpy" in gui.about:
-            author_message = f"""
-Built using {{a=https://github.com/phroun/adventure-for-renpy}}Adventure for Ren'Py{{/a}} v{ADVENTURE_VERSION_MAJOR}.{ADVENTURE_VERSION_MINOR}.{ADVENTURE_VERSION_REVISION} (MIT Licensed)
-by Jeffrey R. Day ({{a=https://ko-fi.com/F2F61JR2B4}}Donate to Support{{/a}})"""
-            if gui.about.strip() != "":
-                gui.about += f"\n"
-            gui.about += author_message
-            if renpy.get_screen("about"):
-                renpy.restart_interaction()
-                renpy.restart_interaction()
-        # </if>
-    # </def>
-    
-    # <def>
     def adventure_point_in_icon(x, y, icon):
         center_x, center_y = icon["position"]
         width, height = icon["size"]
@@ -1280,7 +1277,36 @@ https://ko-fi.com/jeffday
     def adventure_set_tool(new_tool):
         adventure.active_tool = new_tool
     # <def>
+
+    # <def>
+    def adventure_fix_message():
+        # <try>
+        try:
+            if not "adventure-for-renpy" in gui.about:
+                author_message = f"""
+Built using {{a=https://github.com/phroun/adventure-for-renpy}}Adventure for Ren'Py{{/a}} v{ADVENTURE_VERSION_MAJOR}.{ADVENTURE_VERSION_MINOR}.{ADVENTURE_VERSION_REVISION} (MIT Licensed)
+by Jeffrey R. Day ({{a=https://ko-fi.com/F2F61JR2B4}}Donate to Support{{/a}})"""
+                if gui.about.strip() != "":
+                    gui.about += f"\n"
+                if gui.about == None:
+                    gui.about = ""
+                gui.about += author_message
+                if renpy.get_screen("about"):
+                    renpy.restart_interaction()
+                renpy.restart_interaction()
+            # </if>
+        except:
+            pass
+        # </try>
+    # </def>    
+
+    adventure.old_context_callback = config.context_callback
+    config.context_callback = adventure_fix_message
 # </init>
+
+init 1500 python:  # Very late in the init process
+    if renpy.has_screen("about"):
+        adventure_fix_message()
 
 # <screen>
 screen adventure_toolbar():
