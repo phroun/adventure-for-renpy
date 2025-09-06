@@ -39,7 +39,7 @@ Player interactions are logged in either first or second person:
 >>> You speak to receptionist.
 ```
 
-<img src="https://raw.githubusercontent.com/phroun/adventure-for-renpy/main/assets/Example-2.jpg" height="350" align="right">
+<img src="https://raw.githubusercontent.com/phroun/adventure-for-renpy/main/assets/Example-2.jpg" height="320" align="right">
 
 ### Polygons and/or Icons:
 
