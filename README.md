@@ -7,6 +7,8 @@
 
 [![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/F2F61JR2B4)
 
+![Example of Point and Click Adventure Game](assets/Example-1.jpg)
+
 ## Requirements
 
 - **RenPy 7.5 or newer (8.4.1 recommended)**: A python-infused framework for Visual Novels.

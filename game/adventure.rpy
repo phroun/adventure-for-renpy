@@ -1265,8 +1265,11 @@ https://ko-fi.com/jeffday
             else:
                 person = "You "
             # </if>
-            logtext = "{b}{i}" + person + adventure_escape_renpy(bestmatch) + "{/i}{/b}"
-            ADVENTURE_LOG.add_history(kind="adv", what=logtext, who=ADVENTURE_LOG.name)
+            # <if>
+            if bestmatch.strip() != "":
+              logtext = "{b}{i}" + person + adventure_escape_renpy(bestmatch) + "{/i}{/b}"
+              ADVENTURE_LOG.add_history(kind="adv", what=logtext, who=ADVENTURE_LOG.name)
+            # </if>
             return len(matches) != 0
         else:
             return bestmatch
@@ -1590,6 +1593,7 @@ label adventure_input(room):
         # </if>
     # </python>
 # </label>
+
 
 screen choice(items):
     modal True

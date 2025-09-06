@@ -1191,9 +1191,9 @@ screen adventure_editor():
 
                 # <if>
                 if adventure.editorPos == 0:
-                    text "Editor ▷" size 12 bold True color "#FFFFFF" xalign 0.5 yalign 0.5
+                    text "Location Editor ▷" size 11 bold True color "#FFFFFF" xalign 0.5 yalign 0.5
                 else:
-                    text "◁ Editor" size 12 bold True color "#FFFFFF" xalign 0.5 yalign 0.5
+                    text "◁ Location Editor" size 11 bold True color "#FFFFFF" xalign 0.5 yalign 0.5
                 # </if>
             # </button>
 
