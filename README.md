@@ -40,6 +40,7 @@ Player interactions are logged in either first or second person:
 ```
 
 <img src="https://raw.githubusercontent.com/phroun/adventure-for-renpy/main/assets/Example-2.jpg" height="300" align="right">
+
 ### Polygons and/or Icons:
 
 There are two systems of clickable elements ("interactables"), which can either be used independently or both together:
