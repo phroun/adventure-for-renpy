@@ -1,9 +1,9 @@
 """
 **************************************************************************
 **
-**   adventure.rpy - Adventure Module (for RenPy)
+**   adventure.rpy - Adventure Module (for Ren'Py)
 **
-**   Version 0.2 revision 0
+**   Version 0.2 revision 2
 **
 **************************************************************************
 This module is released under the MIT License:
@@ -34,7 +34,7 @@ DEALINGS IN THE SOFTWARE.
 
 define ADVENTURE_VERSION_MAJOR = 0
 define ADVENTURE_VERSION_MINOR = 2
-define ADVENTURE_VERSION_REVISION = 1
+define ADVENTURE_VERSION_REVISION = 2
 
 define ADVENTURE_UNSET = "unset"
 
@@ -219,6 +219,13 @@ init -10 python:
     build.classify('game/adventure-editor.rpy', None)
     build.classify('game/adventure-editor.rpyc', None)
     build.classify('images/editor-icons/**', None)
+
+    # <def>
+    def adventure_custom_link(target):
+        webbrowser.open(target)
+    # </def>
+
+    #  config.hyperlink_handlers['advlink'] = adventure_custom_link
 
     # <def>
     def adventure_capitalize_first_letter(input_string):
@@ -819,6 +826,7 @@ init -10 python:
             this_stamp = time.time()
             waited = abs(this_stamp - adventure.last_target_stamp) > 0.1
             if (ev.type == pygame.MOUSEMOTION and waited) or ev.type == pygame.MOUSEBUTTONDOWN:
+                adventure_fix_message()
                 adventure.last_target_stamp = this_stamp
                 adventure.last_targets = adventure.targets
                 clicked = ev.type == pygame.MOUSEBUTTONDOWN
@@ -893,7 +901,22 @@ init -10 python:
 
     # Initialize the mouse position variables
     store.mousePosition = getMousePosition()
-
+    
+    # <def>
+    def adventure_fix_message():
+        if not "adventure-for-renpy" in gui.about:
+            author_message = f"""
+Built using {{a=https://github.com/phroun/adventure-for-renpy}}Adventure for Ren'Py{{/a}} v{ADVENTURE_VERSION_MAJOR}.{ADVENTURE_VERSION_MINOR}.{ADVENTURE_VERSION_REVISION} (MIT Licensed)
+by Jeffrey R. Day ({{a=https://ko-fi.com/F2F61JR2B4}}Donate to Support{{/a}})"""
+            if gui.about.strip() != "":
+                gui.about += f"\n"
+            gui.about += author_message
+            if renpy.get_screen("about"):
+                renpy.restart_interaction()
+                renpy.restart_interaction()
+        # </if>
+    # </def>
+    
     # <def>
     def adventure_point_in_icon(x, y, icon):
         center_x, center_y = icon["position"]
@@ -1020,15 +1043,17 @@ init -10 python:
             except:
                 print("No room data loaded")
             # </try>
-            
-            print("This game is built using \"Adventure for RenPy\" by Jeffrey R. Day:")
-            print("A free (MIT Licensed) module to add point-and-click adventure game support to RenPy.")
-            print("https://github.com/phroun/adventure-for-renpy")
-            print("")
-            print("Please consider supporting development of the \"Adventure for RenPy\" module by donating to me on ko-fi:  https://ko-fi.com/jeffday")
 
+            author_message_1 = """
+This game is built using \"Adventure for Ren'Py\" by Jeffrey R. Day:
+A free (MIT Licensed) module to add point-and-click adventure game support to RenPy.
+https://github.com/phroun/adventure-for-renpy
+
+Please consider supporting development of the \"Adventure for Ren'Py\" module by donating to me on ko-fi:
+https://ko-fi.com/jeffday
+            """
+            print(author_message_1)
             adventure_refresh_icon_dimensions()
-            
             adventure.initialized = True
         # </if>
     # </def adventure_init>
@@ -1383,12 +1408,12 @@ screen adventure_editor():
     pass
 # </screen adventire_editor>
 
-# <sreen>
+# <screen>
 screen adventure_underlay():
     pass
 # </screen adventure_underlay>
 
-# <sreen>
+# <screen>
 screen adventure_overlay():
     use adventure_toolbar
     pass
@@ -1600,4 +1625,3 @@ style choice_button_text:
     color "#ffffff"
     hover_color "#ffff00"  # Yellow on hover
     size 24
- 

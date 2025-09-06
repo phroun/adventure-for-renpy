@@ -1,9 +1,9 @@
 """
 **************************************************************************
 **
-**   adventure-editor.rpy - Editor for Adventure Module (for RenPy)
+**   adventure-editor.rpy - Editor for Adventure Module (for Ren'Py)
 **
-**   Version 0.2 revision 0
+**   Version 0.2 revision 2
 **
 **************************************************************************
 This module is released under the MIT License:
@@ -34,7 +34,7 @@ DEALINGS IN THE SOFTWARE.
 
 define ADVENTURE_EDITOR_VERSION_MAJOR = 0
 define ADVENTURE_EDITOR_VERSION_MINOR = 2
-define ADVENTURE_EDITOR_VERSION_REVISION = 1
+define ADVENTURE_EDITOR_VERSION_REVISION = 2
 
 define adventure_editor_width = 126
 define adventure_editor_height = 360
@@ -60,6 +60,8 @@ init python:
     from renpy.display.core import Displayable
     import math
 
+    adventure.editor_top = (config.screen_height - adventure_editor_height) // 2
+    
     adventure.editor_last_targids = []
     adventure.editorLayer = ADVENTURE_EDITOR_LAYER_EX
     adventure.editorTool = ADVENTURE_EDITOR_TOOL_PLAY
@@ -1170,7 +1172,7 @@ screen adventure_editor():
     frame:
         background Frame(Solid("#FFFFFF"), 2, 2, tile=False)
         xpos editor_x - 5
-        ypos 80
+        ypos adventure.editor_top
         xsize (adventure_editor_width + 10)
         ysize (adventure_editor_height + 4)
         padding (2, 2)  # Border Thickness
@@ -1738,7 +1740,7 @@ screen adventure_editor():
             text_hover_color "#99ffee"
             background Solid("#000000")
             hover_background Solid("#333333")
-            ypos 135
+            ypos (adventure.editor_top + 55)
         # </textbutton>
         # <textbutton>
         textbutton "▸▸":
@@ -1751,7 +1753,7 @@ screen adventure_editor():
             text_hover_color "#99ffee"
             background Solid("#000000")
             hover_background Solid("#333333")
-            ypos 135
+            ypos (adventure.editor_top + 55)
         # </textbutton>
         # <if>
         if adventure.editorTool == ADVENTURE_EDITOR_TOOL_EDIT and interactable_type == "polygon":
@@ -1765,7 +1767,7 @@ screen adventure_editor():
                 text_hover_color "#99ffee"
                 background Solid("#000000")
                 hover_background Solid("#333333")
-                ypos 244
+                ypos (adventure.editor_top + 164)
             # </textbutton>
             # <textbutton>
             textbutton "▸▸":
@@ -1778,7 +1780,7 @@ screen adventure_editor():
                 text_hover_color "#99ffee"
                 background Solid("#000000")
                 hover_background Solid("#333333")
-                ypos 244
+                ypos (adventure.editor_top + 164)
             # </textbutton>
         # </if point editor>
 
@@ -1786,22 +1788,22 @@ screen adventure_editor():
 
     # <if>
     if adventure.editorTool != ADVENTURE_EDITOR_TOOL_PLAY:
-        text ("#" + str(adventure.interactableId + 1) + " (" + interactable_type_text(interactable_type) + ")" ) size 15 xpos (editor_x + adventure_editor_width // 2) xanchor 0.5 ypos 138 color "#00cc66"
+        text ("#" + str(adventure.interactableId + 1) + " (" + interactable_type_text(interactable_type) + ")" ) size 15 xpos (editor_x + adventure_editor_width // 2) xanchor 0.5 ypos (adventure.editor_top + 58) color "#00cc66"
     # </if>
 
     $ mode_text = adventure_get_mode_text(adventure.editorTool)
-    text mode_text size 12 xpos (editor_x + adventure_editor_width // 2) xanchor 0.5 ypos 190 color "#999999"
+    text mode_text size 12 xpos (editor_x + adventure_editor_width // 2) xanchor 0.5 ypos (adventure.editor_top + 110) color "#999999"
 
     # <if>
     if adventure.editorTool == ADVENTURE_EDITOR_TOOL_EDIT and interactable_type == "polygon":
-        text ("Pt. " + str(adventure.pointId + 1)) size 15 xpos (editor_x + adventure_editor_width // 2) xanchor 0.5 ypos 247 color "#00cc66"
+        text ("Pt. " + str(adventure.pointId + 1)) size 15 xpos (editor_x + adventure_editor_width // 2) xanchor 0.5 ypos (adventure.editor_top + 168) color "#00cc66"
     # </if>
 
     # <if>
     if not icon_browse:
         # <text>
         text "Room:":
-            ypos (adventure_editor_height)
+            ypos (adventure.editor_top + adventure_editor_height - 70)
             xpos (editor_x + adventure_editor_width // 2)
             xanchor 0.5
             bold True
@@ -1809,7 +1811,7 @@ screen adventure_editor():
         # </text>
         # <text>
         text "[adventure.roomName]":
-            ypos (adventure_editor_height + 15)
+            ypos (adventure.editor_top + adventure_editor_height - 70 + 15)
             xpos (editor_x + adventure_editor_width // 2)
             xanchor 0.5
             size 14
@@ -1824,6 +1826,6 @@ screen adventure_editor():
         text_size 12
         xpos (editor_x + adventure_editor_width // 2)
         xanchor 0.5
-        ypos (adventure_editor_height + 50)
+        ypos (adventure.editor_top + adventure_editor_height - 60 + 30)
     # </textbutton> 
 # </screen adventure_editor>

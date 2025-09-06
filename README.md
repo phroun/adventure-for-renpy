@@ -12,14 +12,54 @@ If you use this, please support me on ko-fi:  https://ko-fi.com/jeffday
 
 ## Features
 
-- **Clickable Zones**: Define multiple clickable zones per room.
-- **Editor UI**: Presence of adventure-editor.rpy (not shipped in build) enables editor UI.
-- **Tool Groups for Verbs**:
-  - Movement Mode Verbs: Go [-/Through/In/Out/Across]
-  - Examine Mode Verbs: Look/Read/Taste/Listen/Smell
-  - Operate Mode Verbs: Use/Open/Close/Touch
-  - Speak Mode Verbs: Talk To/Speak/Ask
-  - Auto-Operate Mode Verbs: Move Mode Verbs + Operate Mode Verbs + (Non-Icon) Examine Mode Verbs
+- Locations (completely independent from Ren'Py Labels or Screens) which are
+  activated simply by using `call adventure_input("hotel lobby")`
+- **Location Editor UI**: The presence of adventure-editor.rpy (not shipped
+  in a game build) enables the editor UI.
+- Natural Language Matching:  `if player_chooses_to("speak to receptionist"):`
+- Automatic history logging of player interactions in either first or second person:
+  - `>>> You speak to receptionist.`
+- Two systems of clickable elements ("interactables"), which can either be
+  used independently or both together:
+  - **Clickable Polygons**: Define multiple clickable polygons per room,
+    each of which can have customized verb per "layer", or can match with
+    the default group of verbs for a layer.
+  - **Verb Overlay Icons**: Define multiple layers of icons for interaction,
+    each of which has one or more potential verb meanings assigned to it.
+- Optional in-game **Toolbar** with Configurable "Verb Group" Tools
+  - Only Verb Overlay Icons belonging to the currently activated Tool are visible.
+  - **Example of Tool Groups for Verbs**:
+    - Movement Mode Verbs: Go [-/Through/In/Out/Across]
+    - Examine Mode Verbs: Look/Read/Taste/Listen/Smell
+    - Operate Mode Verbs: Use/Open/Close/Touch
+    - Speak Mode Verbs: Talk To/Speak/Ask
+    - Auto-Operate Mode Verbs: Move Mode Verbs + Operate Mode Verbs + (Non-Icon) Examine Mode Verbs
+- Persistent and Per-Scene Flags:
+  - Flags must be declared with `adventure_declare_flag("name", "optional description")`
+    which is used to validate all flag references to eliminate bugs due to
+    typographical errors or other inconsistencies.
+  - Use `adventure_set("flag")` or `adventure_unset("flag")` to manage
+    persistent flags.
+  - Use `adventure_set_scene("daytime, rainy")` to replace all flags from
+    previous scene.
+  - Flags are automatically cascaded so that persistent and scene flags can
+    all be tested at once.
+  - A condition field on each Polygon and Overlay Icon allows interactables
+    to be conditionally enabled/disabled.
+  - Flags can be tested in code with `if adventure_check_condition("daytime&sunny"):`
+    - Condition expressions support & AND, | OR, ! NOT, and () parenthesis.
+- When `adventure.active_tip = True` the game will "magically" display tool
+  tips describing the action that will be invoked upon clicking.
+  - After all failed `player_chooses_to()` tests, include a `jump` statement to
+    jump back to the call to adventure_input.
+  - Adventure will perform one "dry run" automatically, failing each condition
+    instantly in order to gather the list of match statements.
+  - When it hits the second invocation of `player_chooses_to()` after the `jump`,
+    it will be in interactive mode, and all of the possible actions for all
+    tool layers will be available as Tool Tips.
+  - This allows for natural language tips such as "Turn on the light" or
+    "Press the elevator button" even though both are click actions made by
+    the same tool.
 
 ## Quick Start
 
@@ -68,6 +108,10 @@ label lounge:
 MIT License - see [LICENSE](LICENSE) file for details.
 
 ## Changelog
+
+### 0.2.2
+- Improved placement of Editor User Interface.
+- Improved documentation in README.md
 
 ### 0.2.1
 - Added tooltip hint for actions (configurable via adventure.action_tip) 
