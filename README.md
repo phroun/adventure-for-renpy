@@ -39,9 +39,10 @@ Player interactions are logged in either first or second person:
 >>> You speak to receptionist.
 ```
 
+<img src="https://raw.githubusercontent.com/phroun/adventure-for-renpy/main/assets/Example-2.jpg" width="50%" align="right">
+
 ### Polygons and/or Icons:
 
-<img src="https://raw.githubusercontent.com/phroun/adventure-for-renpy/main/assets/Example-2.jpg" height="350" style="float: right; margin-left: 1em;">
 There are two systems of clickable elements ("interactables"), which can either be used independently or both together:
 
 - **Clickable Polygons**
