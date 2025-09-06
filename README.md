@@ -41,8 +41,7 @@ Player interactions are logged in either first or second person:
 
 ### Polygons and/or Icons:
 
-<img src="https://raw.githubusercontent.com/phroun/adventure-for-renpy/main/assets/Example-2.jpg" height="350" style="float: right; margin-left: 1em;">
-There are two systems of clickable elements ("interactables"), which can either be used independently or both together:
+<img src="https://raw.githubusercontent.com/phroun/adventure-for-renpy/main/assets/Example-2.jpg" height="200" style="float: right; margin-left: 1em;">There are two systems of clickable elements ("interactables"), which can either be used independently or both together:
 
 - **Clickable Polygons**
   - Define multiple clickable polygons per room, each of which can have customized verb per "layer", or can match with the default group of verbs for a layer.
