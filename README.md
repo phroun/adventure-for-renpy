@@ -67,11 +67,15 @@ There is an optional in-game **Toolbar** with configurable "Verb Group" Tools
 - A condition field on each Polygon and Overlay Icon allows interactables to be conditionally enabled/disabled.
 - Flags can be tested in code with `if adventure_check_condition("daytime&sunny"):`
   - Condition expressions support & AND, | OR, ! NOT, and () parenthesis.
-- When `adventure.active_tip = True` the game will "magically" display tool tips describing the action that will be invoked upon clicking.
-  - After all failed `player_chooses_to()` tests, include a `jump` statement to jump back to the call to adventure_input.
-  - Adventure will perform one "dry run" automatically, failing each condition instantly in order to gather the list of match statements.
-  - When it hits the second invocation of `player_chooses_to()` after the `jump`, it will be in interactive mode, and all of the possible actions for all tool layers will be available as Tool Tips.
-  - This allows for natural language tips such as "Turn on the light" or "Press the elevator button" even though both are click actions made by the same tool.
+
+### Tool Tips (Optional)
+
+When `adventure.active_tip = True` the game will "magically" display tool tips describing the action that will be invoked upon clicking:
+
+- After all failed `player_chooses_to()` tests, include a `jump` statement to jump back to the call to adventure_input.
+- Adventure will perform one "dry run" automatically, failing each condition instantly in order to gather the list of match statements.
+- When it hits the second invocation of `player_chooses_to()` after the `jump`, it will be in interactive mode, and all of the possible actions for all tool layers will be available as Tool Tips.
+- This allows for natural language tips such as "Turn on the light" or "Press the elevator button" even though both are click actions made by the same tool.
 
 ## Quick Start
 
