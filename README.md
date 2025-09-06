@@ -12,19 +12,19 @@ If you use this, please support me on ko-fi:  https://ko-fi.com/jeffday
 
 ## Features
 
-# Locations (completely independent from Ren'Py Labels or Screens) which are activated simply by using `call adventure_input("hotel lobby")`
-# **Location Editor UI**: The presence of adventure-editor.rpy (not shipped  in a game build) enables the editor UI.
-# Natural Language Matching:  `if player_chooses_to("speak to receptionist"):`
-# Automatic history logging of player interactions in either first or second person:
+### Locations (completely independent from Ren'Py Labels or Screens) which are activated simply by using `call adventure_input("hotel lobby")`
+### **Location Editor UI**: The presence of adventure-editor.rpy (not shipped  in a game build) enables the editor UI.
+### Natural Language Matching:  `if player_chooses_to("speak to receptionist"):`
+### Automatic history logging of player interactions in either first or second person:
 
 - `>>> You speak to receptionist.`
 
-# Two systems of clickable elements ("interactables"), which can either be used independently or both together:
+### Two systems of clickable elements ("interactables"), which can either be used independently or both together:
 
 - **Clickable Polygons**: Define multiple clickable polygons per room, each of which can have customized verb per "layer", or can match with the default group of verbs for a layer.
 - **Verb Overlay Icons**: Define multiple layers of icons for interaction, each of which has one or more potential verb meanings assigned to it.
 
-# Optional in-game **Toolbar** with Configurable "Verb Group" Tools
+### Optional in-game **Toolbar** with Configurable "Verb Group" Tools
 
 - Only Verb Overlay Icons belonging to the currently activated Tool are visible.
 - **Example of Tool Groups for Verbs**:
@@ -34,7 +34,7 @@ If you use this, please support me on ko-fi:  https://ko-fi.com/jeffday
   - Speak Mode Verbs: Talk To/Speak/Ask
   - Auto-Operate Mode Verbs: Move Mode Verbs + Operate Mode Verbs + (Non-Icon) Examine Mode Verbs
 
-# Persistent and Per-Scene Flags:
+### Persistent and Per-Scene Flags:
 
 - Flags must be declared with `adventure_declare_flag("name", "optional description")` which is used to validate all flag references to eliminate bugs due to typographical errors or other inconsistencies.
 - Use `adventure_set("flag")` or `adventure_unset("flag")` to manage persistent flags.
