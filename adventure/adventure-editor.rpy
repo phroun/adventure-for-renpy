@@ -61,7 +61,6 @@ init python:
     import math
 
     adventure.editor_top = (config.screen_height - adventure_editor_height) // 2
-    
     adventure.editor_last_targids = []
     adventure.editorLayer = ADVENTURE_EDITOR_LAYER_EX
     adventure.editorTool = ADVENTURE_EDITOR_TOOL_PLAY
@@ -1830,21 +1829,50 @@ screen adventure_editor():
     # </textbutton> 
 # </screen adventure_editor>
 
+
 # </init>
 init 900 python:
-    # <if>
-    if adventure.generate_icons:
-        print("Converting icon ", adventure.game_icon, "...")
-        # <try>
-        try:
-            adventure_create_multi_size_icns(os.path.join(renpy.config.gamedir, adventure.game_icon), os.path.join(renpy.config.basedir, "icon.icns"))
-            print("Created icon.icns")
-            adventure_create_multi_size_ico(os.path.join(renpy.config.gamedir, adventure.game_icon), os.path.join(renpy.config.basedir, "icon.ico"))
-            print("Created icon.ico")
-            adventure_create_scaled_png(os.path.join(renpy.config.gamedir, adventure.game_icon), os.path.join(renpy.config.gamedir, "gui/window_icon.png"), 128, 128)
-        except Exception as e:
-            print("An error occurred: {}".format(str(e)))
-            pass
-        # </try>
-    # </if>
+
+    # <def>
+    def adventure_icon_setup_continue():
+        cand = os.path.join(renpy.config.gamedir, "gui/window_icon_candidate.png")
+        existing = os.path.join(renpy.config.gamedir, "gui/window_icon.png")
+        #  prompt for icon replace
+        selected_index = renpy.call_in_new_context("adventure_icon_prompt",
+            "Development Mode:  Install new icon in project?",
+            ((adventure_get_relative_path(existing), "Keep Current Icon"),
+            (adventure_get_relative_path(cand), "Install New Icon")),
+#            iconpadding=120, labelpadding=10, labelheight=20, iconwidth=128
+        )
+        
+        # <if>
+        if selected_index > 0:
+            adventure_compare_install_icons(os.path.join(renpy.config.gamedir, adventure.game_icon), True)
+        else:
+            renpy.call_screen("adventure_alert_box", """
+{size=-4}To prevent this prompt from appearing again, you must add one of the following to the init python section of your script.rpy file:{/size}
+
+adventure.game_icon = "images/your_icon.png"
+{size=-8}{i}(replace your_icon with the filename of the icon to install){/i}{/size}
+
+{size=-8}-or-{/size}
+
+adventure.generate_icons = False
+""", Return(True))
+        # </if>
+    # </def>
+
+    # <def>
+    def adventure_icon_setup():
+        # <if>
+        if adventure.generate_icons:
+            # <if>
+            if not adventure_compare_install_icons(os.path.join(renpy.config.gamedir, adventure.game_icon)):
+                adventure.prompt_icons = True
+            # </if>
+        # </if>
+    # </def>
+    
+    adventure_icon_setup()
+
 # </init>

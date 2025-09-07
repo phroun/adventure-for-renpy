@@ -235,6 +235,7 @@ init -10 python:
     adventure.result = ""
     adventure.lastRoom = "nowhere"
     adventure.screen_should_exit = False
+    adventure.prompt_icons = False
     adventure.targets = []
     adventure.considered_targets = []
     adventure.target_x = -1
@@ -1093,6 +1094,15 @@ https://ko-fi.com/jeffday
             print(author_message_1)
             adventure_refresh_icon_dimensions()
             adventure.initialized = True
+            # <if>
+            if adventure.prompt_icons:
+                # <try>
+                try:
+                    adventure_icon_setup_continue()
+                except:
+                    pass
+                # </try>
+            # </if>
         # </if>
     # </def adventure_init>
 
@@ -1700,6 +1710,181 @@ label adventure_input(room):
         # </if>
     # </python>
 # </label>
+
+# <screen>
+# Adventure Icon Prompt Screen
+screen adventure_icon_prompt(question, icon_options, iconpadding=20, labelpadding=20, labelheight=30, iconwidth=None, iconheight=None):
+    if not iconwidth:
+        $ iconwidth = 128
+    if not iconheight:
+        $ iconheight = iconwidth
+    if not iconpadding:
+        $ iconpadding = 22
+    if not labelheight:
+        $ labelheight = 30
+    if not labelpadding:
+        $ labelpadding = 20
+    # Semi-transparent background
+    add "#000000" alpha 0.8
+    
+    # Main container
+    # <frame>
+    frame:
+        background Frame("gui/frame.png", gui.frame_borders, tile=gui.frame_tile)
+        xalign 0.5
+        yalign 0.5
+        xpadding 40
+        ypadding 30
+        
+        # <vbox>
+        vbox:
+            spacing 20
+            xalign 0.5
+            
+            # Title
+            text question style "confirm_prompt" xalign 0.5
+            null height 5
+            # Icon grid
+            # <hbox>
+            hbox:
+                spacing 0
+                xalign 0.5
+                
+                # <for>
+                for i, (icon_file, icon_label) in enumerate(icon_options):
+                    # Container for each icon option
+                    # <fixed>
+                    fixed:
+                        xsize (iconwidth + iconpadding + labelpadding)
+                        ysize (iconheight + 10 + labelheight)
+                        xalign 0.5
+                        
+                        # Content vbox (non-interactive)
+                        # <vbox>
+                        vbox:
+                            spacing 10
+                            xalign 0.5
+                            yalign 0.5
+                            xsize (iconwidth + iconpadding)
+                            ysize (iconheight)
+                            
+                            null height 20
+                            
+                            $ icon_image = Image(icon_file)
+                            if icon_image is not None:
+                                add Transform(icon_image, size=(iconwidth, iconheight)) xalign 0.5
+                            else:
+                                # Fallback if image can't be loaded
+                                frame:
+                                    xsize iconwidth
+                                    ysize iconheight
+                                    xalign 0.5
+                                    background "#333333"
+                                    text "Icon {}".format(i+1):
+                                        xalign 0.5
+                                        yalign 0.5
+                            
+                            frame:
+                                background None
+                                xpadding labelpadding
+                                xalign 0.5
+                                xsize iconwidth + iconpadding
+                                # Label text
+                                text icon_label:
+                                    style "confirm_prompt"
+                                    xalign 0.5
+                                    text_align 0.5
+                                    size 18
+                                    xsize (iconwidth + iconpadding)
+                                # </text>
+                            # </frame>
+                            null height 20
+                        # </vbox>
+                        # Transparent overlay button
+                        # <button>
+                        button:
+                            xsize (iconwidth + iconpadding + labelpadding)
+                            ysize (iconheight + labelheight + 50)
+                            background None  # Completely transparent
+                            hover_background Frame(Solid("#ffffff22"), 2, 2, 2, 2)  # Light border on hover
+                            action Return(i)
+                            xalign 0.5
+                            yalign 0.5
+                        # </button>
+                    # </fixed>
+                # <for>
+                
+            # </hbox>
+            
+            null height 5
+        # </vbox>
+    # </frame>
+# </screen>
+
+# <label>
+label adventure_icon_prompt(question, icon_options, iconpadding=None,
+    labelheight=None, labelpadding=None, iconwidth=None, iconheight=None
+):
+    # Validate input
+    if not icon_options:
+        "No icon options provided!"
+        return -1
+
+    # Show the selection screen
+    call screen adventure_icon_prompt(question, icon_options,
+        iconpadding=iconpadding,
+        labelpadding=labelpadding,
+        labelheight=labelheight,
+        iconwidth=iconwidth,
+        iconheight=iconheight
+    )
+    
+    # Return the selected index
+    return _return
+# </label>
+
+# <screen>
+screen adventure_alert_box(message, ok_action):
+    # Set the screen to be modal, blocking other interactions.
+    modal True
+    # The zorder value ensures this screen is drawn on top of others.
+    zorder 100 
+
+    # A dark overlay to dim the game's background.
+    add "gui/overlay/confirm.png"
+
+    # Use a frame to create a visual box for the alert.
+    frame:
+        # Center the frame on the screen.
+        align (0.5, 0.5)
+
+        # A vertical box to arrange the text and button.
+        vbox:
+            # Set spacing between elements.
+            spacing 20
+
+            frame:
+                background None  # Transparent background
+                xpadding 20
+                ypadding 10
+                xalign 0.5
+                # Display the message passed to the screen.
+                text message:
+                    size 24
+                    # Align the text to the center.
+                    xalign 0.5
+                    text_align 0.5
+                    xmaximum 800
+
+            # The "OK" button to close the alert.
+            textbutton _("OK"):
+                # Center the button.
+                xalign 0.5
+                # The action to take when the button is clicked.
+                action ok_action
+
+            null height 10
+# </screen>
 
 # <screen>
 screen choice(items):

@@ -214,7 +214,6 @@ MIT License - see [LICENSE](LICENSE) file for details.
 
 ### Requirements to achieve 1.0:
 
-- Enhance Toolbar Display
 - Room-Persistent Flags (Useful for Inventory-Related Tasks)
 - Debug Mode to Force-Override Flag Values
 - Allow Active Scenes to Overload a Room+Verb+Label with a Scene Trigger
@@ -224,12 +223,3 @@ MIT License - see [LICENSE](LICENSE) file for details.
 
 - Dialogue and Choices Style
 - Task & Notes Journal
-
-### Feature Requests:
-
-- Fading Overlay Icons
-- Visible Polygon Labels
-- Add support for custom toolbar element:
-  - Toolbar Radio Buttons
-  - Toolbar Checkboxes
-  - Toolbar Action Buttons
