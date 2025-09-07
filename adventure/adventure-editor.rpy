@@ -67,6 +67,8 @@ init python:
     adventure.editorTool = ADVENTURE_EDITOR_TOOL_PLAY
     adventure.pointMode = ADVENTURE_EDITOR_POINT_MOVE
     adventure.pointId = 0
+    adventure.editor_icons = "adventure/images/editor-icons"
+    adventure.images_base = "adventure/images"
 
     # <def>
     def adventure_get_polygon_weighted_center(points, density_radius=50):
@@ -1226,7 +1228,7 @@ screen adventure_editor():
                             padding (0, 0)   # Internal padding
                             
                             # <add>
-                            add "images/editor-icons/editor-play.png":
+                            add (adventure.editor_icons + "/editor-play.png"):
                                 fit "contain"
                                 xalign 0.5
                                 yalign 0.5
@@ -1242,7 +1244,7 @@ screen adventure_editor():
                             padding (0, 0)   # Internal padding
                             
                             # <add>
-                            add "images/editor-icons/editor-select.png":
+                            add (adventure.editor_icons + "/editor-select.png"):
                                 fit "contain"
                                 xalign 0.5
                                 yalign 0.5
@@ -1258,7 +1260,7 @@ screen adventure_editor():
                             padding (0, 0)
                             
                             # <add>
-                            add "images/editor-icons/editor-edit-point.png":
+                            add (adventure.editor_icons + "/editor-edit-point.png"):
                                 fit "contain"
                                 xalign 0.5
                                 yalign 0.5
@@ -1274,7 +1276,7 @@ screen adventure_editor():
                             padding (0, 0)
                             
                             # <add>
-                            add "images/editor-icons/editor-new-icon.png":
+                            add (adventure.editor_icons + "/editor-new-icon.png"):
                                 fit "contain"
                                 xalign 0.5
                                 yalign 0.5
@@ -1290,7 +1292,7 @@ screen adventure_editor():
                             padding (0, 0)
                             
                             # <add>
-                            add "images/editor-icons/editor-new-polygon.png":
+                            add (adventure.editor_icons + "/editor-new-polygon.png"):
                                 fit "contain"
                                 xalign 0.5
                                 yalign 0.5
@@ -1354,7 +1356,7 @@ screen adventure_editor():
                                     padding (0, 0)   # Internal padding
                                     
                                     # <add>
-                                    add "images/editor-icons/editor-new-point.png":
+                                    add (adventure.editor_icons + "/editor-new-point.png"):
                                         fit "contain"
                                         xalign 0.5
                                         yalign 0.5
@@ -1370,7 +1372,7 @@ screen adventure_editor():
                                     padding (0, 0)   # Internal padding
                                     
                                     # <add>
-                                    add "images/editor-icons/editor-delete-point.png":
+                                    add (adventure.editor_icons + "/editor-delete-point.png"):
                                         fit "contain"
                                         xalign 0.5
                                         yalign 0.5
@@ -1393,7 +1395,7 @@ screen adventure_editor():
                                     padding (0, 0)
                                     
                                     # <add>
-                                    add "images/editor-icons/editor-delete-polygon.png":
+                                    add (adventure.editor_icons + "/editor-delete-polygon.png"):
                                         fit "contain"
                                         xalign 0.5
                                         yalign 0.5
@@ -1426,7 +1428,7 @@ screen adventure_editor():
                                 xysize (24, 24)
                                 padding (0, 0)
                                 # <add>
-                                add ("images/editor-icons/editor-" + ("un" if adventure_field_value("ex") == "" else "") + "checked.png"):
+                                add (adventure.editor_icons + "/editor-" + ("un" if adventure_field_value("ex") == "" else "") + "checked.png"):
                                     fit "contain"
                                     xalign 0.5
                                     yalign 0.5
@@ -1441,7 +1443,7 @@ screen adventure_editor():
                                 xysize (24, 24)
                                 padding (0, 0)
                                 # <add>
-                                add ("images/editor-icons/editor-" + ("un" if adventure_field_value("say") == "" else "") + "checked.png"):
+                                add (adventure.editor_icons + "/editor-" + ("un" if adventure_field_value("say") == "" else "") + "checked.png"):
                                     fit "contain"
                                     xalign 0.5
                                     yalign 0.5
@@ -1456,7 +1458,7 @@ screen adventure_editor():
                                 xysize (24, 24)
                                 padding (0, 0)
                                 # <add>
-                                add ("images/editor-icons/editor-" + ("un" if adventure_field_value("op") == "" else "") + "checked.png"):
+                                add (adventure.editor_icons + "/editor-" + ("un" if adventure_field_value("op") == "" else "") + "checked.png"):
                                     fit "contain"
                                     xalign 0.5
                                     yalign 0.5
@@ -1471,7 +1473,7 @@ screen adventure_editor():
                                 xysize (24, 24)
                                 padding (0, 0)
                                 # <add>
-                                add ("images/editor-icons/editor-" + ("un" if adventure_field_value("go") == "" else "") + "checked.png"):
+                                add (adventure.editor_icons + "/editor-" + ("un" if adventure_field_value("go") == "" else "") + "checked.png"):
                                     fit "contain"
                                     xalign 0.5
                                     yalign 0.5
@@ -1486,7 +1488,7 @@ screen adventure_editor():
                                 xysize (24, 24)
                                 padding (0, 0)
                                 # <add>
-                                add ("images/editor-icons/editor-" + ("un" if adventure_field_value("condition") == "" else "") + "checked.png"):
+                                add (adventure.editor_icons + "/editor-" + ("un" if adventure_field_value("condition") == "" else "") + "checked.png"):
                                     fit "contain"
                                     xalign 0.5
                                     yalign 0.5
@@ -1519,7 +1521,7 @@ screen adventure_editor():
                                 xysize (24, 24)
                                 padding (0, 0)
                                 # <add>
-                                add "images/editor-icons/editor-mode-ex.png":
+                                add (adventure.editor_icons + "/editor-mode-ex.png"):
                                     fit "contain"
                                     xalign 0.5
                                     yalign 0.5
@@ -1535,7 +1537,7 @@ screen adventure_editor():
                                 xysize (24, 24)
                                 padding (0, 0)
                                 # <add>
-                                add "images/editor-icons/editor-mode-say.png":
+                                add (adventure.editor_icons + "/editor-mode-say.png"):
                                     fit "contain"
                                     xalign 0.5
                                     yalign 0.5
@@ -1551,7 +1553,7 @@ screen adventure_editor():
                                 xysize (24, 24)
                                 padding (0, 0)
                                 # <add>
-                                add "images/editor-icons/editor-mode-op.png":
+                                add (adventure.editor_icons + "/editor-mode-op.png"):
                                     fit "contain"
                                     xalign 0.5
                                     yalign 0.5
@@ -1567,7 +1569,7 @@ screen adventure_editor():
                                 xysize (24, 24)
                                 padding (0, 0)
                                 # <add>
-                                add "images/editor-icons/editor-mode-go.png":
+                                add (adventure.editor_icons + "/editor-mode-go.png"):
                                     fit "contain"
                                     xalign 0.5
                                     yalign 0.5
@@ -1585,7 +1587,7 @@ screen adventure_editor():
                                     xysize (24, 24)
                                     padding (0, 0)
                                     # <add>
-                                    add "images/editor-icons/editor-delete-icon.png":
+                                    add (adventure.editor_icons + "/editor-delete-icon.png"):
                                         fit "contain"
                                         xalign 0.5
                                         yalign 0.5
@@ -1601,7 +1603,7 @@ screen adventure_editor():
                                     xysize (24, 24)
                                     padding (0, 0)
                                     # <add>
-                                    add "images/editor-icons/editor-mode-condition.png":
+                                    add (adventure.editor_icons + "/editor-mode-condition.png"):
                                         fit "contain"
                                         xalign 0.5
                                         yalign 0.5
@@ -1684,7 +1686,7 @@ screen adventure_editor():
                                                 xysize (40, 40)
                                                 padding (0, 0)
                                                 # <add>
-                                                add ("images/" + adventure.iconset + "/" + base_list[iconname][0]):
+                                                add (adventure.images_base + "/" + adventure.iconset + "/" + base_list[iconname][0]):
                                                     fit "contain"
                                                     xalign 0.5
                                                     yalign 0.5

@@ -63,7 +63,7 @@ init -10 python:
     # function when both adventure-editor.rpy and and adventure-utils.rpy are present.
 
     adventure.generate_icons = True
-    adventure.game_icon = "images/editor-icons/about.png"
+    adventure.game_icon = "adventure/images/editor-icons/about.png"
 
     # The following settings can also be overriden in your script's init
     # python section:

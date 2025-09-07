@@ -83,8 +83,7 @@ When `adventure.active_tip = True` the game will "magically" display tool tips d
 
 ## Quick Start
 
-Install by placing the contents of the game folder into your RenPy Project's game
-folder, including the iconsets which go in your game/images folder.
+Install by placing the adventure folder into your RenPy Project's game folder.
 
 You now have access to the adventure system:
 
