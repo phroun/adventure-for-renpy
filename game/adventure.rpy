@@ -56,7 +56,7 @@ init -10 python:
         # </def>
     # </class>
 
-    ADVENTURE_LOG = DynamicCharacter(">>>", who_color="#999999", what_color="#999999")
+    ADVENTURE_LOG = Character(">>>", who_color="#999999", what_color="#999999")
     adventure = AdventureStore()
 
     # Automatic conversion and installation of App/.exe and Window icon will only
@@ -70,11 +70,18 @@ init -10 python:
 
     adventure.do_logging = True
     adventure.first_person = False  # False = You, True = I
+    adventure.narratorName = ""
+
+    adventure.tooltip_xpos = 0.5
+    adventure.tooltip_ypos = 20
+    adventure.tooltip_size = 18
+    adventure.tooltip_bg_opacity = 0.5
     adventure.action_tip = True
+
     adventure.iconset = "free-icons"
     adventure.iconzoom = 0.1
     adventure.icon_padding = 5
-    adventure.active_tool = "auto"
+
     adventure.toolbar_position = "bottom"
     adventure.toolbar_iconset = "free-icons"
     adventure.toolbar_iconzoom = 0.1
@@ -89,6 +96,9 @@ init -10 python:
     adventure.toolbar_draw_order_reversed = False
 
     adventure.toolbar_hints = {
+
+        # These are the tooltips for the toolbar icons:
+
         "go": "Go (Walk, Travel)",
         "ex": "Examine (Look, Listen, etc.)",
         "op": "Use",
@@ -97,6 +107,9 @@ init -10 python:
     }
 
     adventure.tool_icons = {
+
+        # These are the image filename associated with each verb mode tool:
+
         "go": "mode-go.png",
         "ex": "mode-examine.png",
         "op": "mode-operate.png",
@@ -105,6 +118,10 @@ init -10 python:
     }
 
     adventure.verb_icons = {  # organized by tool mode
+
+        # These are the image filenames and verb(s) associated with
+        # each overlay icon:
+
         "go": {
             "go": ("verb-go.png", "*go")
         },
@@ -216,15 +233,17 @@ init -10 python:
     adventure.lastRoom = "nowhere"
     adventure.screen_should_exit = False
     adventure.targets = []
+    adventure.considered_targets = []
     adventure.target_x = -1
     adventure.target_y = -1
     adventure._temp_return = ""
     adventure.iconSizes = {}
     adventure.screen_icons = []
     adventure.debug_show_inactive = False
+    adventure.active_tool = "auto"
     adventure.last_target_stamp = 0
     adventure.last_targets = []
-    adventure.last_hint = ""
+    adventure.last_hint = None
     adventure.gathering_hints = False
     adventure.actions = []
 
@@ -267,8 +286,14 @@ init -10 python:
 
     # <def>
     def adventure_declare_flags(flag_list):
+        # <if>
+        if len(flag_list) == 1 and isinstance(flag_list[0], (list, tuple, set)):
+            data = flag_list[0]
+        else:
+            data = flag_list
+        # </if>
         # <for>
-        for item in flag_list:
+        for item in data:
             # <if>
             if isinstance(item, str):
                 adventure_declare_flag(item, None)
@@ -837,11 +862,12 @@ init -10 python:
             # <if>
             this_stamp = time.time()
             waited = abs(this_stamp - adventure.last_target_stamp) > 0.1
-            if (ev.type == pygame.MOUSEMOTION and waited) or ev.type == pygame.MOUSEBUTTONDOWN:
+            if (ev.type == pygame.MOUSEMOTION and waited) or ev.type in [pygame.MOUSEBUTTONDOWN, pygame.MOUSEBUTTONUP]:
                 adventure_fix_message()
                 adventure.last_target_stamp = this_stamp
                 adventure.last_targets = adventure.targets
-                clicked = ev.type == pygame.MOUSEBUTTONDOWN
+                clicking = ev.type == pygame.MOUSEBUTTONDOWN
+                clicked = ev.type == pygame.MOUSEBUTTONUP
                 adventure.mousex = x
                 adventure.mousey = y
                 current_x = adventure.mousex
@@ -880,7 +906,9 @@ init -10 python:
                             adventure.targets = [(icon["interactableId"], icon["verb"])]
                         # </if>
                     # </for>
-                    if clicked and ev.button == 1:
+                    if clicking and ev.button == 1:
+                        adventure.considered_targets = adventure.targets
+                    if clicked and ev.button == 1 and adventure.targets == adventure.considered_targets:
                         adventure.target_x = adventure.mousex
                         adventure.target_y = adventure.mousey
                         adventure._temp_return = "clicked"
@@ -889,12 +917,16 @@ init -10 python:
                         raise renpy.IgnoreEvent()
                     elif (adventure.targets != adventure.last_targets) and adventure.action_tip:
                         adventure.gathering_hints = True
-                        hint = ""
+                        hint = None
                         # <for>
                         for act in adventure.actions:
                             hint = player_chooses_to(act)
+                            # <if>
                             if hint != "":
                                 break
+                            else:
+                                hint = None
+                            # </if>
                         # </for>
                         if hint != adventure.last_hint:
                             adventure.last_hint = hint
@@ -1159,7 +1191,7 @@ https://ko-fi.com/jeffday
     # </def adventure_apply_tag_aliases>
 
     # <def>
-    def player_chooses_to(command):
+    def player_chooses_to(command, read_as = None):
         # <if>
         if adventure.action_collector:
             adventure.actions.append(command)
@@ -1243,16 +1275,21 @@ https://ko-fi.com/jeffday
             # </if ends with noun>
         # </for>
 
-        highest = -1
-        bestmatch = ""
-        # <for>
-        for match, nl in matches:
-            # <if>
-            if nl > highest:
-                highest = nl
-                bestmatch = match
-            # </if>
-        # </for>
+        # <if>
+        if read_as:
+           bestmatch = read_as
+        else:
+            highest = -1
+            bestmatch = ""
+            # <for>
+            for match, nl in matches:
+                # <if>
+                if nl > highest:
+                    highest = nl
+                    bestmatch = match
+                # </if>
+            # </for>
+        # </if>
 
         # <if>
         if not adventure.gathering_hints:
@@ -1271,6 +1308,25 @@ https://ko-fi.com/jeffday
         else:
             return bestmatch
         # </if>
+    # </def>
+
+    # <def>
+    def player_examines(*targets_and_responses):
+        # <if>
+        if len(targets_and_responses) == 1 and isinstance(targets_and_responses[0], (list, tuple, set)):
+            data = targets_and_responses[0]
+        else:
+            data = targets_and_responses
+        # </if>
+        # <for>
+        for target, response in data:
+            # <for>
+            if player_chooses_to("examine " + target):
+                # Force proper text display
+                renpy.say(ADVENTURE_NARRATOR, response)
+                return True
+            # </if>
+        # </for>
     # </def>
     
     # <def>
@@ -1300,13 +1356,23 @@ by Jeffrey R. Day ({{a=https://ko-fi.com/F2F61JR2B4}}Donate to Support{{/a}})"""
         # </try>
     # </def>    
 
+    # <def>
+    def adventure_tooltip():
+        return GetTooltip() or None if adventure.last_hint == None else adventure_capitalize_first_letter(adventure.last_hint)
+    # </def>
+
     adventure.old_context_callback = config.context_callback
     config.context_callback = adventure_fix_message
 # </init>
 
+# <init>
 init 1500 python:  # Very late in the init process
+    ADVENTURE_NARRATOR = DynamicCharacter("adventure.narratorName")
+    # <if>
     if renpy.has_screen("about"):
         adventure_fix_message()
+    # </if>
+# </init>
 
 # <screen>
 screen adventure_toolbar():
@@ -1443,8 +1509,30 @@ screen adventure_underlay():
 # </screen adventure_underlay>
 
 # <screen>
+screen adventure_tooltip():
+    # <if>
+    if adventure_tooltip():
+        # <frame>
+        frame:
+            background Solid("#000000", alpha=adventure.tooltip_bg_opacity)
+            xalign adventure.tooltip_xpos
+            ypos adventure.tooltip_ypos
+            padding (20, 10)
+            # <text>
+            text adventure_tooltip():
+                size adventure.tooltip_size
+                color "#ffffff"
+                bold True
+                text_align 0.5
+            # </text>
+        # </frame>
+    # </if>
+# </screen>
+
+# <screen>
 screen adventure_overlay():
     use adventure_toolbar
+    use adventure_tooltip
     pass
 # </screen adventure_overlay>
 
@@ -1563,25 +1651,6 @@ screen adventure_interaction():
     add mousePosition
     use adventure_editor
     use adventure_overlay
-
-    # <if>
-    if adventure.last_hint != "" or GetTooltip():
-        # <frame>
-        frame:
-            background Solid("#000000", alpha=0.8)
-            xalign 0.5
-            ypos 20
-            padding (20, 10)
-            # <text>
-            text GetTooltip() or adventure_capitalize_first_letter(adventure.last_hint):
-                size 18
-                color "#ffffff"
-                bold True
-                text_align 0.5
-            # </text>
-        # </frame>
-    # </if>
-
 # </screen adventure_interaction>
 
 # <label>
@@ -1620,7 +1689,7 @@ label adventure_input(room):
     # </python>
 # </label>
 
-
+# <screen>
 screen choice(items):
     modal True
     
@@ -1628,30 +1697,45 @@ screen choice(items):
     add "#000000" alpha 0.3
     
     # Choice container at bottom
+    # <frame>
     frame:
         xalign 0.5
         ypos 0.8  # Fixed position from top
         xsize 800  # Fixed width
         
+        # <vbox>
         vbox:
             spacing 15
+            # <for>
             for i in items:
+                # <textbutton>
                 textbutton i.caption:
                     action i.action
                     hover_sound "audio/hover.ogg"  # if you have hover sounds
                     xfill True
+                # </textbutton>
+            # </for>
+        # </vbox>
+    # </frame>
+# </screen choice>
 
-# Optional: Custom styling for the choice buttons
+
+# <style>
 style choice_vbox:
     xalign 0.5
     spacing 10
+# </style choice_vbox>
 
+# <style>
 style choice_button:
     xminimum 400  # Minimum button width
     xalign 0.5
+# </style choice_button>
 
+# <style>
 style choice_button_text:
     xalign 0.5
     color "#ffffff"
     hover_color "#ffff00"  # Yellow on hover
     size 24
+# </style choice_button_text>
