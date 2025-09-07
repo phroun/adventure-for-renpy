@@ -78,11 +78,13 @@ init -10 python:
     adventure.tooltip_bg_opacity = 0.5
     adventure.action_tip = True
 
+    adventure.images_base = "adventure/images"
     adventure.iconset = "free-icons"
     adventure.iconzoom = 0.1
     adventure.icon_padding = 5
 
     adventure.toolbar_position = "bottom"
+    adventure.toolbar_icons_base = "adventure/images"
     adventure.toolbar_iconset = "free-icons"
     adventure.toolbar_iconzoom = 0.1
     adventure.toolbar_anchor = 0.5
@@ -1055,13 +1057,13 @@ init -10 python:
         for tool in adventure.verb_icons:
             # <for>
             for verb in adventure.verb_icons[tool]:
-                icon_name = "images/" + adventure.iconset + "/" + adventure.verb_icons[tool][verb][0]
+                icon_name = adventure.images_base + "/" + adventure.iconset + "/" + adventure.verb_icons[tool][verb][0]
                 adventure.iconSizes[icon_name] = adventure_get_image_dimensions(icon_name)
             # </for>
         # </for>
-        icon_name = "images/" + adventure.toolbar_iconset + "/toolbar-active.png"
+        icon_name = adventure.toolbar_icons_base + "/" + adventure.toolbar_iconset + "/toolbar-active.png"
         adventure.iconSizes[icon_name] = adventure_get_image_dimensions(icon_name)
-        icon_name = "images/" + adventure.toolbar_iconset + "/toolbar-inactive.png"
+        icon_name = adventure.toolbar_icons_base + "/" + adventure.toolbar_iconset + "/toolbar-inactive.png"
         adventure.iconSizes[icon_name] = adventure_get_image_dimensions(icon_name)
     # </def>
 
@@ -1391,10 +1393,10 @@ screen adventure_toolbar():
         valid_icons = []
         vertical = adventure.toolbar_position in ["right", "left"]
         icon_width = adventure.toolbar_iconzoom * adventure.iconSizes[
-                "images/" + adventure.toolbar_iconset + "/toolbar-inactive.png"
+                adventure.toolbar_icons_base + "/" + adventure.toolbar_iconset + "/toolbar-inactive.png"
             ][0]
         icon_height = adventure.toolbar_iconzoom * adventure.iconSizes[
-                "images/" + adventure.toolbar_iconset + "/toolbar-inactive.png"
+                adventure.toolbar_icons_base + "/" + adventure.toolbar_iconset + "/toolbar-inactive.png"
             ][1]
         icon_length = icon_height if vertical else icon_width
         icon_depth = icon_width if vertical else icon_height
@@ -1461,7 +1463,7 @@ screen adventure_toolbar():
 
     # <add>
     
-    add ("images/" + adventure.toolbar_iconset + "/toolbar-bg.png"):
+    add (adventure.toolbar_icons_base + "/" + adventure.toolbar_iconset + "/toolbar-bg.png"):
         fit "fill"
         xpos toolbar_x
         ypos toolbar_y
@@ -1476,13 +1478,13 @@ screen adventure_toolbar():
         python:
             status = "active" if icon == adventure.active_tool else "inactive"
         # </python>
-        add ("images/" + adventure.toolbar_iconset + "/toolbar-" + status + ".png"):
+        add (adventure.toolbar_icons_base + "/" + adventure.toolbar_iconset + "/toolbar-" + status + ".png"):
             xpos int(this_x)
             ypos int(this_y)
             fit "fill"
             xsize int(icon_width)
             ysize int(icon_height)
-        add ("images/" + adventure.toolbar_iconset + "/" + adventure.tool_icons[icon]):
+        add (adventure.toolbar_icons_base + "/" + adventure.toolbar_iconset + "/" + adventure.tool_icons[icon]):
             xpos int(this_x + icon_width // 2)
             ypos int(this_y + icon_height // 2)
             fit "fill"
@@ -1613,7 +1615,7 @@ screen adventure_interaction():
                     total_width = 0
                     # <for>
                     for verbimage in reversed(icon_verb_images):
-                        this_width = adventure.iconSizes["images/" + adventure.iconset + "/" + verbimage][0] * adventure.iconzoom
+                        this_width = adventure.iconSizes[adventure.images_base + "/" + adventure.iconset + "/" + verbimage][0] * adventure.iconzoom
                         total_width += this_width if this_width != "None" else 20
                     # </for>
                     total_width += (len(icon_verb_images) - 1) * adventure.icon_padding
@@ -1627,7 +1629,7 @@ screen adventure_interaction():
                     # <if>
                     if this_active or adventure.debug_show_inactive:
                         # <add>
-                        add ("images/" + adventure.iconset + "/" + verbimage):
+                        add (adventure.images_base + "/" + adventure.iconset + "/" + verbimage):
                             xpos int(x + xoffs)
                             ypos y
                             xanchor 0
@@ -1638,7 +1640,7 @@ screen adventure_interaction():
                     # </if>
                     # <python>
                     python:
-                        this_size_raw = adventure.iconSizes["images/" + adventure.iconset + "/" + verbimage]
+                        this_size_raw = adventure.iconSizes[adventure.images_base + "/" + adventure.iconset + "/" + verbimage]
                         this_size = (
                             (this_size_raw[0] * adventure.iconzoom) if this_size_raw[0] != "None" else 20,
                             (this_size_raw[1] * adventure.iconzoom) if this_size_raw[1] != "None" else 20

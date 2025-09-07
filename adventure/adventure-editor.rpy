@@ -68,7 +68,6 @@ init python:
     adventure.pointMode = ADVENTURE_EDITOR_POINT_MOVE
     adventure.pointId = 0
     adventure.editor_icons = "adventure/images/editor-icons"
-    adventure.images_base = "adventure/images"
 
     # <def>
     def adventure_get_polygon_weighted_center(points, density_radius=50):
