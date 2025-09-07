@@ -221,6 +221,7 @@ init -10 python:
     adventure.boiled_flags = set()
     adventure.room = []
     adventure.roomName = "demo_room"
+    adventure.matched_action = False
     adventure.action_collector = False
     adventure.editing = False
     adventure.modalFreeze = 0
@@ -859,6 +860,7 @@ init -10 python:
         # <def>
         def event(self, ev, x, y, st):
             import pygame
+            need_res = False
             # <if>
             this_stamp = time.time()
             waited = abs(this_stamp - adventure.last_target_stamp) > 0.1
@@ -906,6 +908,7 @@ init -10 python:
                             adventure.targets = [(icon["interactableId"], icon["verb"])]
                         # </if>
                     # </for>
+                    # <if>
                     if clicking and ev.button == 1:
                         adventure.considered_targets = adventure.targets
                     if clicked and ev.button == 1 and adventure.targets == adventure.considered_targets:
@@ -917,24 +920,29 @@ init -10 python:
                         raise renpy.IgnoreEvent()
                     elif (adventure.targets != adventure.last_targets) and adventure.action_tip:
                         adventure.gathering_hints = True
-                        hint = None
+                        hint = ""
                         # <for>
                         for act in adventure.actions:
+                            print(act)
                             hint = player_chooses_to(act)
                             # <if>
                             if hint != "":
                                 break
                             else:
-                                hint = None
+                                hint = ""
                             # </if>
                         # </for>
                         if hint != adventure.last_hint:
                             adventure.last_hint = hint
-                            renpy.restart_interaction()
-                        adventure.gathering_hints = False
+                            adventure.gathering_hints = False
+                            need_res = True
                     # </if>
                 # </if valid point and not modalFreeze>
-            # </if MOUSEBUTTONDOWN or MOUSEMOTION>
+            # </if MOUSEBUTTONDOWN, MOUSEBUTTONUP, or MOUSEMOTION>
+            # <if>
+            if need_res:
+                renpy.restart_interaction()
+            # </if>
         # </def event>
 
         # <def>
@@ -1195,6 +1203,7 @@ https://ko-fi.com/jeffday
         # <if>
         if adventure.action_collector:
             adventure.actions.append(command)
+            print("gathering", adventure.actions)
             return False
         # </if>
         cmd_words = command.split()
@@ -1251,6 +1260,7 @@ https://ko-fi.com/jeffday
                 # </if valid tool>
             # <for targets>
         # </for>
+        print(cmd, " -vs- ", sentences)
         matches = []
 
         # <for>
@@ -1276,7 +1286,7 @@ https://ko-fi.com/jeffday
         # </for>
 
         # <if>
-        if read_as:
+        if False and read_as and len(matches) != 0:
            bestmatch = read_as
         else:
             highest = -1
@@ -1301,12 +1311,13 @@ https://ko-fi.com/jeffday
             # </if>
             # <if>
             if bestmatch.strip() != "":
-              logtext = "{b}{i}" + person + adventure_escape_renpy(bestmatch) + "{/i}{/b}"
-              ADVENTURE_LOG.add_history(kind="adv", what=logtext, who=ADVENTURE_LOG.name)
+                adventure.matched_action = True
+                logtext = "{b}{i}" + person + adventure_escape_renpy(bestmatch) + "{/i}{/b}"
+                ADVENTURE_LOG.add_history(kind="adv", what=logtext, who=ADVENTURE_LOG.name)
             # </if>
             return len(matches) != 0
         else:
-            return bestmatch
+            return bestmatch  # this goes to the hint collector!
         # </if>
     # </def>
 
@@ -1320,13 +1331,14 @@ https://ko-fi.com/jeffday
         # </if>
         # <for>
         for target, response in data:
-            # <for>
+            # <if>
             if player_chooses_to("examine " + target):
                 # Force proper text display
                 renpy.say(ADVENTURE_NARRATOR, response)
                 return True
             # </if>
         # </for>
+        return False
     # </def>
     
     # <def>
@@ -1658,6 +1670,7 @@ label adventure_input(room):
     # <python>
     python:
         adventure.roomName = room
+        adventure.matched_action = False
         # <if>
         if adventure.action_tip:
             adventure.action_collector = not adventure.action_collector

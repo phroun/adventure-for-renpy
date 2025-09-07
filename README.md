@@ -91,6 +91,8 @@ You now have access to the adventure system:
 ```rpy
 init python:
     adventure_declare_flags([
+      ("Int", "Interior scene"),
+      ("Ext", "Exterior scene"),
       ("Day", "Present when it is daytime"),
       ("Night", "Present when it is nighttime"),
     ])
@@ -99,19 +101,27 @@ label lounge:
     scene bg lounge
     
     # the following will only persist until the next set_scene
-    adventure_set_scene("int, day")
+    $ adventure_set_scene("int, night")
 
     call adventure_input("lounge")
+
+    if player_chooses_to("use bell"):
+       "You ring the bell and wait a moment.  No one arrives."
+    if player_chooses_to("enter the lift"):
+        "The elevator door is jammed."
     if player_chooses_to("examine desk"):
         if adventure_check_condition("night"):
            "A card next to a bell says, \"ring for service\""
         else:
-           "The hotel clerk stands behind the desk."
-    if player_chooses_to("use bell"):
-       "You ring the bell and wait a moment.  No one arrives."
-    
-    if player_chooses_to("enter the lift"):
-        "The elevator door is jammed."
+           "The hotel clerk stands behind the desk, with his head buried in a dime novel."
+    if player_examines(
+        ("bell", "It's an old brass hotel bell.  Maybe if I press it, I can get someone's attention?"),
+        ("plant", "This potted plant hasn't been watered in years.  In fact, it's plastic."),
+        ("chandelier", "A victorian-style chandelier, fitted with electric bulbs.\n"
+          "The only gaslighting going on here is that half of these bulbs burned out in "
+          "1987 and nobody's bothered to replace them.")
+    ):
+        pass
     jump lounge
 ```
 
