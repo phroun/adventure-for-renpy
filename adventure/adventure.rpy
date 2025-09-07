@@ -923,7 +923,6 @@ init -10 python:
                         hint = ""
                         # <for>
                         for act in adventure.actions:
-                            print(act)
                             hint = player_chooses_to(act)
                             # <if>
                             if hint != "":
@@ -1203,7 +1202,6 @@ https://ko-fi.com/jeffday
         # <if>
         if adventure.action_collector:
             adventure.actions.append(command)
-            print("gathering", adventure.actions)
             return False
         # </if>
         cmd_words = command.split()
@@ -1260,7 +1258,6 @@ https://ko-fi.com/jeffday
                 # </if valid tool>
             # <for targets>
         # </for>
-        print(cmd, " -vs- ", sentences)
         matches = []
 
         # <for>
