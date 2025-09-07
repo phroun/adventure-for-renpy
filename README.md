@@ -139,6 +139,14 @@ MIT License - see [LICENSE](LICENSE) file for details.
 
 ## Changelog
 
+### 0.2.4
+- Added `player_examines()` for the common case of multiple descriptions.
+- Fixed a bug where not processing MOUSEUP event was causing RenPy text
+  speed (CPS) issues.
+
+### 0.2.3
+- Added utilities for automatic conversion and installation of game icons.
+
 ### 0.2.2
 - Improved placement of Editor User Interface.
 - Improved documentation in README.md
