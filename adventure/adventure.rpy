@@ -248,9 +248,9 @@ init -10 python:
     adventure.gathering_hints = False
     adventure.actions = []
 
-    build.classify('game/adventure-editor.rpy', None)
-    build.classify('game/adventure-editor.rpyc', None)
-    build.classify('images/editor-icons/**', None)
+    build.classify('game/adventure/adventure-editor.rpy', None)
+    build.classify('game/adventure/adventure-editor.rpyc', None)
+    build.classify('game/adventure/images/editor-icons/**', None)
 
     # <def>
     def adventure_custom_link(target):
