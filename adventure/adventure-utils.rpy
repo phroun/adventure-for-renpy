@@ -81,7 +81,7 @@ init python:
             total_data_size = 0
             
             # Create temporary directory for scaled images
-            temp_dir = "temp_icons"
+            temp_dir = os.path.join(renpy.config.basedir, "temp_icons")
             if not os.path.exists(temp_dir):
                 os.makedirs(temp_dir)
             
@@ -137,7 +137,7 @@ init python:
             print("Error creating multi-size .icns: {}".format(str(e)))
             return False
     # </def adventure_create_multi_size_icns>
-    
+
     # <def>
     def adventure_create_multi_size_ico(base_image_path, output_ico_path):
         """
@@ -153,6 +153,21 @@ init python:
             base_surface = pygame.image.load(base_image_path)
             base_width, base_height = base_surface.get_size()
             
+            # If not square, we'll scale to the largest square that fits
+            if base_width != base_height:
+                print("Warning: Image is not square ({}x{}). Will crop/scale to square.".format(base_width, base_height))
+                size = min(base_width, base_height)
+                # Center crop to square
+                x_offset = (base_width - size) // 2
+                y_offset = (base_height - size) // 2
+                crop_rect = pygame.Rect(x_offset, y_offset, size, size)
+                base_surface = base_surface.subsurface(crop_rect).copy()
+            
+            # Scale to 256x256 if not already that size (using largest common size for ico)
+            if base_surface.get_size() != (256, 256):
+                print("Warning: Scaling image from {} to 256x256".format(base_surface.get_size()))
+                base_surface = pygame.transform.smoothscale(base_surface, (256, 256))
+            
             # Define icon sizes for Windows .ico
             icon_sizes = [
                 (16, 16),
@@ -164,7 +179,7 @@ init python:
             png_data_list = []
             
             # Create temporary directory for scaled images
-            temp_dir = "temp_ico"
+            temp_dir = os.path.join(renpy.config.basedir, "temp_ico")
             if not os.path.exists(temp_dir):
                 os.makedirs(temp_dir)
             
@@ -172,7 +187,7 @@ init python:
                 # Generate PNG data for each size
                 for i, (width, height) in enumerate(icon_sizes):
                     # Scale surface
-                    if (width, height) == (base_width, base_height):
+                    if width == 256 and height == 256:
                         scaled_surface = base_surface.convert_alpha()
                     else:
                         scaled_surface = pygame.transform.smoothscale(base_surface, (width, height))
