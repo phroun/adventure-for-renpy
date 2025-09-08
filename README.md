@@ -138,6 +138,12 @@ MIT License - see [LICENSE](LICENSE) file for details.
 
 ## Changelog
 
+### 0.2.5
+- Added adventure.choice_position which takes values of: "top", "center",
+  "bottom", "left", or "right"
+- Added AdventureNineSlice displayable.
+- Fixed a bug where the active tool wasn't filtering polygons correctly.
+
 ### 0.2.4
 - Added `player_examines()` for the common case of multiple descriptions.
 - Fixed a bug where not processing MOUSEUP event was causing RenPy text

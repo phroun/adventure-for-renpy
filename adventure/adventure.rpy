@@ -3,7 +3,7 @@
 **
 **   adventure.rpy - Adventure Module (for Ren'Py)
 **
-**   Version 0.2 revision 4
+**   Version 0.2 revision 5
 **
 **************************************************************************
 This module is released under the MIT License:
@@ -34,7 +34,7 @@ DEALINGS IN THE SOFTWARE.
 
 define ADVENTURE_VERSION_MAJOR = 0
 define ADVENTURE_VERSION_MINOR = 2
-define ADVENTURE_VERSION_REVISION = 4
+define ADVENTURE_VERSION_REVISION = 5
 
 define ADVENTURE_UNSET = "unset"
 
@@ -47,6 +47,7 @@ init -10 python:
     import renpy.display.render as render
     from renpy.display.core import Displayable
     import math
+    import re
 
     # <class>
     class AdventureStore(object):
@@ -96,6 +97,20 @@ init -10 python:
     adventure.toolbar_menu = "touch_only"
     adventure.toolbar_inventory_expand = True # one button per item? False = bag icon
     adventure.toolbar_draw_order_reversed = False
+    
+    adventure.choice_position = "center"
+    adventure.choice_frame = "adventure/images/choice-frame.png"
+    adventure.choice_frame_hover = None
+    adventure.choice_frame_selected = None
+    adventure.choice_textcolor = "#000000"
+    adventure.choice_textcolor_hover = "#ffff00"
+    adventure.choice_textcolor_selected = "#003333"
+    
+    adventure.margins = {
+       "adventure/images/choice-frame.png": {
+         "left": 400, "top": 36, "right": 36, "bottom": 36
+       }
+    }
 
     adventure.toolbar_hints = {
 
@@ -210,6 +225,44 @@ init -10 python:
          "auto": [
              "*go", "*op", "*say", ".*ex"
          ]
+    }
+
+    adventure.choice_positions = {
+        "center": {
+            "xanchor": 0.5,
+            "yanchor": 0.5,
+            "yalign": 0.5,
+            "width": 0.5,
+            "height": None
+        },
+        "top": {
+            "xanchor": 0.5,
+            "yanchor": 0,
+            "yalign": 0,
+            "width": 0.5,
+            "height": None
+        },
+        "bottom": {
+            "xanchor": 0.5,
+            "yanchor": 1.0,
+            "yalign": 1.0,
+            "width": 0.5,
+            "height": None
+        },
+        "left": {
+            "xanchor": 0,
+            "yanchor": 0,
+            "yalign": 0,
+            "width": 0.33,
+            "height": 1
+        },
+        "right": {
+            "xanchor": 1,
+            "yanchor": 0,
+            "yalign": 0,
+            "width": 0.33,
+            "height": 1
+        }
     }
     
     # The following are used internally to track state and configuration:
@@ -853,6 +906,205 @@ init -10 python:
     # </class AdventureConditionEvaluator>
 
     # <class>
+    class AdventureNineSliceFrame(renpy.Displayable):
+        def __init__(self, image_file, child=None, bgzoom=1.0, style='default', **properties):
+            super(AdventureNineSliceFrame, self).__init__(**properties)
+            
+            self.child = renpy.displayable(child) if child else None
+            self.image_file = image_file
+            self.bgzoom = bgzoom
+            
+            # Get margins from registry or use default
+            # margins = adventure.margins.get(image_file, {"top": 16, "left": 16, "right": 16, "bottom": 16})
+            margins = adventure.margins[adventure.choice_frame]
+            self.margin_top = margins["top"]
+            self.margin_left = margins["left"] 
+            self.margin_right = margins["right"]
+            self.margin_bottom = margins["bottom"]
+            
+            # Load base image and get original size
+            self.base_image = Image(image_file)
+            self.orig_width, self.orig_height = self.base_image.load().get_size()
+            
+            # Create cropped and bgzoomed pieces
+            self.pieces = self._create_pieces()
+        
+        def _create_pieces(self):
+            """Create the 9 cropped pieces from the main image"""
+            pieces = {}
+            
+            # Apply bgzoom to the base image first, then crop
+            if self.bgzoom != 1.0:
+                zoomed_image = Transform(self.base_image, zoom=self.bgzoom)
+            else:
+                zoomed_image = self.base_image
+            
+            # Use original margins for cropping (before any zoom scaling)
+            left = self.margin_left
+            right = self.margin_right 
+            top = self.margin_top
+            bottom = self.margin_bottom
+            
+            # Calculate zoomed dimensions for cropping
+            zoomed_left = int(left * self.bgzoom)
+            zoomed_right = int(right * self.bgzoom)
+            zoomed_top = int(top * self.bgzoom)
+            zoomed_bottom = int(bottom * self.bgzoom)
+            zoomed_width = int(self.orig_width * self.bgzoom)
+            zoomed_height = int(self.orig_height * self.bgzoom)
+            
+            center_width = zoomed_width - zoomed_left - zoomed_right
+            center_height = zoomed_height - zoomed_top - zoomed_bottom
+            
+            # Create pieces by cropping the zoomed image
+            # Top row
+            pieces['tl'] = Transform(zoomed_image, crop=(0, 0, zoomed_left, zoomed_top))
+            pieces['top'] = Transform(zoomed_image, crop=(zoomed_left, 0, center_width, zoomed_top))
+            pieces['tr'] = Transform(zoomed_image, crop=(zoomed_left + center_width, 0, zoomed_right, zoomed_top))
+            
+            # Middle row  
+            pieces['left'] = Transform(zoomed_image, crop=(0, zoomed_top, zoomed_left, center_height))
+            pieces['middle'] = Transform(zoomed_image, crop=(zoomed_left, zoomed_top, center_width, center_height))
+            pieces['right'] = Transform(zoomed_image, crop=(zoomed_left + center_width, zoomed_top, zoomed_right, center_height))
+            
+            # Bottom row
+            pieces['bl'] = Transform(zoomed_image, crop=(0, zoomed_top + center_height, zoomed_left, zoomed_bottom))
+            pieces['bottom'] = Transform(zoomed_image, crop=(zoomed_left, zoomed_top + center_height, center_width, zoomed_bottom))
+            pieces['br'] = Transform(zoomed_image, crop=(zoomed_left + center_width, zoomed_top + center_height, zoomed_right, zoomed_bottom))
+            
+            return pieces
+        
+        def render(self, width, height, st, at):
+            # Get child size if we have one
+            child_width = child_height = 0
+            child_render = None
+            
+            if self.child:
+                child_render = renpy.render(self.child, width, height, st, at)
+                child_width, child_height = child_render.get_size()
+            
+            # Calculate the actual sizes of the bgzoomed pieces
+            actual_left_width = int(self.margin_left * self.bgzoom)
+            actual_right_width = int(self.margin_right * self.bgzoom)
+            actual_top_height = int(self.margin_top * self.bgzoom)
+            actual_bottom_height = int(self.margin_bottom * self.bgzoom)
+            
+            # Calculate minimum frame size needed
+            min_width = actual_left_width + actual_right_width
+            min_height = actual_top_height + actual_bottom_height
+            
+            # Determine actual frame size
+            frame_width = max(min_width, child_width, width if width < 999999 else min_width)
+            frame_height = max(min_height, child_height, height if height < 999999 else min_height)
+            
+            # Calculate stretching dimensions
+            stretch_width = int(frame_width - actual_left_width - actual_right_width)
+            stretch_height = int(frame_height - actual_top_height - actual_bottom_height)
+            
+            # Create the render
+            render = renpy.Render(frame_width, frame_height)
+            
+            # RENDER MIDDLE FIRST (as background layer)
+            if stretch_width > 0 and stretch_height > 0:
+                middle_piece = Transform(self.pieces['middle'], 
+                                       xsize=stretch_width, 
+                                       ysize=stretch_height,
+                                       fit="stretch")
+                middle_render = renpy.render(middle_piece, stretch_width, stretch_height, st, at)
+                render.blit(middle_render, (actual_left_width, actual_top_height))
+            
+            # RENDER EDGES ON TOP OF MIDDLE
+            if stretch_width > 0:
+                if actual_top_height > 0:
+                    # Top edge: stretch horizontally, keep natural height
+                    top_piece = Transform(self.pieces['top'], 
+                                        xsize=stretch_width, 
+                                        ysize=actual_top_height,
+                                        fit="stretch")
+                    top_render = renpy.render(top_piece, stretch_width, actual_top_height, st, at)
+                    render.blit(top_render, (actual_left_width, 0))
+                
+                if actual_bottom_height > 0:
+                    # Bottom edge: stretch horizontally, keep natural height
+                    bottom_piece = Transform(self.pieces['bottom'], 
+                                           xsize=stretch_width, 
+                                           ysize=actual_bottom_height,
+                                           fit="stretch")
+                    bottom_render = renpy.render(bottom_piece, stretch_width, actual_bottom_height, st, at)
+                    render.blit(bottom_render, (actual_left_width, frame_height - actual_bottom_height))
+            
+            if stretch_height > 0:
+                if actual_left_width > 0:
+                    # Left edge: keep natural width, stretch vertically
+                    left_piece = Transform(self.pieces['left'], 
+                                         xsize=actual_left_width,
+                                         ysize=stretch_height,
+                                         fit="stretch")
+                    left_render = renpy.render(left_piece, actual_left_width, stretch_height, st, at)
+                    render.blit(left_render, (0, actual_top_height))
+                
+                if actual_right_width > 0:
+                    # Right edge: keep natural width, stretch vertically
+                    right_piece = Transform(self.pieces['right'], 
+                                          xsize=actual_right_width, 
+                                          ysize=stretch_height,
+                                          fit="stretch")
+                    right_render = renpy.render(right_piece, actual_right_width, stretch_height, st, at)
+                    render.blit(right_render, (frame_width - actual_right_width, actual_top_height))
+            
+            # RENDER CORNERS LAST (on top of everything)
+            if actual_left_width > 0 and actual_top_height > 0:
+                tl_render = renpy.render(self.pieces['tl'], actual_left_width, actual_top_height, st, at)
+                render.blit(tl_render, (0, 0))
+            
+            if actual_right_width > 0 and actual_top_height > 0:
+                tr_render = renpy.render(self.pieces['tr'], actual_right_width, actual_top_height, st, at)
+                render.blit(tr_render, (frame_width - actual_right_width, 0))
+            
+            if actual_left_width > 0 and actual_bottom_height > 0:
+                bl_render = renpy.render(self.pieces['bl'], actual_left_width, actual_bottom_height, st, at)
+                render.blit(bl_render, (0, frame_height - actual_bottom_height))
+            
+            if actual_right_width > 0 and actual_bottom_height > 0:
+                br_render = renpy.render(self.pieces['br'], actual_right_width, actual_bottom_height, st, at)
+                render.blit(br_render, (frame_width - actual_right_width, frame_height - actual_bottom_height))
+            
+            # Render child content if present
+            if child_render:
+                # Use content margins to position child in correct area
+                actual_content_left = 0 # int(self.content_margin_left * self.bgzoom)
+                actual_content_right = 0 # int(self.content_margin_right * self.bgzoom)
+                actual_content_top = 0 # int(self.content_margin_top * self.bgzoom)
+                actual_content_bottom = 0 # int(self.content_margin_bottom * self.bgzoom)
+                
+                # Center the child in the content area (excluding shaded areas)
+                available_width = frame_width - actual_content_left - actual_content_right
+                available_height = frame_height - actual_content_top - actual_content_bottom
+                child_x = actual_content_left + (available_width - child_width) // 2
+                child_y = actual_content_top + (available_height - child_height) // 2
+                render.blit(child_render, (child_x, child_y))
+            
+            return render
+    # </class>
+
+    # Test version - just render the middle piece
+    def test_middle_piece(image_file):
+        base_image = Image(image_file)
+        margins = adventure.margins.get(image_file, {"top": 16, "left": 16, "right": 16, "bottom": 16})
+        orig_width, orig_height = base_image.load().get_size()
+        
+        left = margins["left"]
+        right = margins["right"] 
+        top = margins["top"]
+        bottom = margins["bottom"]
+        
+        center_width = orig_width - left - right
+        center_height = orig_height - top - bottom
+        
+        middle_piece = Transform(base_image, crop=(left, top, center_width, center_height))
+        return middle_piece
+
+    # <class>
     class getMousePosition(renpy.Displayable):
 
         # <def>
@@ -1220,8 +1472,23 @@ https://ko-fi.com/jeffday
         cmdc = " ".join(cmd_words)
         cmd = cmdc.lower()
         sentences = []
+
+        active_tools = [adventure.active_tool]
+        # <if>
+        if adventure.active_tool in adventure.tool_verbs:
+            # <for>
+            for verb in adventure.tool_verbs[adventure.active_tool]:
+                # <if>
+                if verb.startswith('*'):
+                    active_tools.append(verb[1:])
+                if verb.startswith('.*'):
+                    active_tools.append(verb[2:])
+                # </if>
+            # </for>
+        # </if>
+
         # <for>
-        for tool in adventure.tool_verbs:
+        for tool in active_tools:
             verbs = adventure.tool_verbs[tool]
             toolgroup = '*' + tool
             # <for>
@@ -1381,6 +1648,45 @@ by Jeffrey R. Day ({{a=https://ko-fi.com/F2F61JR2B4}}Donate to Support{{/a}})"""
     def adventure_tooltip():
         return GetTooltip() or None if adventure.last_hint == None else adventure_capitalize_first_letter(adventure.last_hint)
     # </def>
+
+    # <def>
+    def adventure_extract_tag(tag_name, text):
+        """
+        Extract custom tag from text.
+        Returns:
+        - False: tag not present
+        - True: tag exists but has no value (e.g., {custom})
+        - string: tag value (e.g., {custom=box} returns "box")
+        """
+        
+        # Pattern for tag with value: {custom=value}
+        value_pattern = r'\{' + tag_name + r'=([^}]+)\}'
+        # Pattern for tag without value: {custom}
+        no_value_pattern = r'\{' + tag_name + r'\}'
+        
+        # Check for tag with value first
+        value_match = re.search(value_pattern, text)
+        # <if>
+        if value_match:
+            return value_match.group(1)
+        # </if>
+        
+        # Check for tag without value
+        # <if>
+        if re.search(no_value_pattern, text):
+            return True
+        # </if>
+        
+        # Tag not present
+        return False
+    # </def>
+    
+    # Register tag as invisible in text display
+    config.custom_text_tags["prompt"] = lambda tag, argument: ""
+    config.custom_text_tags["event"] = lambda tag, argument: ""
+    config.custom_text_tags["cancel"] = lambda tag, argument: ""
+    config.custom_text_tags["done"] = lambda tag, argument: ""
+    config.custom_text_tags["disabled"] = lambda tag, argument: ""
 
     adventure.old_context_callback = config.context_callback
     config.context_callback = adventure_fix_message
@@ -1586,7 +1892,6 @@ screen adventure_interaction():
                 # </if>
             # </for>
         # </if>
-    
     # <for>
     for interactableId, interactable in enumerate(adventure.room):
         # <if>
@@ -1626,7 +1931,7 @@ screen adventure_interaction():
                     # <for>
                     for verbimage in reversed(icon_verb_images):
                         this_width = adventure.iconSizes[adventure.images_base + "/" + adventure.iconset + "/" + verbimage][0] * adventure.iconzoom
-                        total_width += this_width if this_width != "None" else 20
+                        total_width += this_width if this_width != None else 20
                     # </for>
                     total_width += (len(icon_verb_images) - 1) * adventure.icon_padding
                     xoffs -= total_width // 2
@@ -1652,8 +1957,8 @@ screen adventure_interaction():
                     python:
                         this_size_raw = adventure.iconSizes[adventure.images_base + "/" + adventure.iconset + "/" + verbimage]
                         this_size = (
-                            (this_size_raw[0] * adventure.iconzoom) if this_size_raw[0] != "None" else 20,
-                            (this_size_raw[1] * adventure.iconzoom) if this_size_raw[1] != "None" else 20
+                            (this_size_raw[0] * adventure.iconzoom) if this_size_raw[0] != None else 20,
+                            (this_size_raw[1] * adventure.iconzoom) if this_size_raw[1] != None else 20
                         )
                         adventure.screen_icons.append({
                             "interactableId": this_id,
@@ -1886,36 +2191,61 @@ screen adventure_alert_box(message, ok_action):
             null height 10
 # </screen>
 
+
 # <screen>
 screen choice(items):
     modal True
     
-    # Black semi-transparent background
-    add "#000000" alpha 0.3
+    $ geom = adventure.choice_positions[adventure.choice_position]
+    
+    # <python>
+    python:
+        parsed_items = []
+        # <for>
+        for i in items:
+            parsed_items.append({
+                "caption": i.caption,
+                "action": i.action,
+                "icon": "choice"
+            })
+        # </for>
+    # </python>
     
     # Choice container at bottom
     # <frame>
     frame:
-        xalign 0.5
-        ypos 0.8  # Fixed position from top
-        xsize 800  # Fixed width
+        xalign geom["xanchor"]
+        yalign geom["yanchor"]
+        xsize int(geom["width"] * config.screen_width)  # Fixed width
+        ysize (None if geom["height"] == None else int(geom["height"] * config.screen_height))
+        background "#00000066"
+        padding (20, 20)
         
         # <vbox>
         vbox:
+            xalign 0.5
             spacing 15
+            xfill True
             # <for>
-            for i in items:
+            for i in parsed_items:
                 # <textbutton>
-                textbutton i.caption:
-                    action i.action
+                textbutton i["caption"]:
+                    action i["action"]
                     hover_sound "audio/hover.ogg"  # if you have hover sounds
                     xfill True
+                    ysize 80
+                    text_size 24
+                    background AdventureNineSliceFrame(adventure.choice_frame, bgzoom = 0.25)
+                    text_color adventure.choice_textcolor
+                    text_hover_color adventure.choice_textcolor_hover
+                    text_selected_color adventure.choice_textcolor_selected
+                    padding (100, 4, 4, 4)
                 # </textbutton>
             # </for>
         # </vbox>
     # </frame>
-# </screen choice>
 
+# </screen choice>
 
 # <style>
 style choice_vbox:
