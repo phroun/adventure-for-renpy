@@ -138,6 +138,13 @@ MIT License - see [LICENSE](LICENSE) file for details.
 
 ## Changelog
 
+### 0.2.6
+- Added magic choice text tags:
+  - {prompt}, question at top of choice prompt
+  - {event}, marks this choice as a plot event (moves forwad)
+  - {cancel}, marks this choice as a cancel option (dismisses)
+- Added distintive toolbar icons for "auto", "say", and "go"
+
 ### 0.2.5
 - Added adventure.choice_position which takes values of: "top", "center",
   "bottom", "left", or "right"
@@ -221,11 +228,10 @@ MIT License - see [LICENSE](LICENSE) file for details.
 ### Requirements to achieve 1.0:
 
 - Room-Persistent Flags (Useful for Inventory-Related Tasks)
-- Debug Mode to Force-Override Flag Values
 - Allow Active Scenes to Overload a Room+Verb+Label with a Scene Trigger
   - Generate an Error in Advance if Specified Room+Verb+Label is Undefined
 
 ### Upcoming Planned Features:
 
-- Dialogue and Choices Style
+- Improved Dialogue Styles
 - Task & Notes Journal

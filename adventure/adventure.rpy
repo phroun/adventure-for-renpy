@@ -3,7 +3,7 @@
 **
 **   adventure.rpy - Adventure Module (for Ren'Py)
 **
-**   Version 0.2 revision 5
+**   Version 0.2 revision 6
 **
 **************************************************************************
 This module is released under the MIT License:
@@ -34,7 +34,7 @@ DEALINGS IN THE SOFTWARE.
 
 define ADVENTURE_VERSION_MAJOR = 0
 define ADVENTURE_VERSION_MINOR = 2
-define ADVENTURE_VERSION_REVISION = 5
+define ADVENTURE_VERSION_REVISION = 6
 
 define ADVENTURE_UNSET = "unset"
 
@@ -98,9 +98,9 @@ init -10 python:
     adventure.toolbar_inventory_expand = True # one button per item? False = bag icon
     adventure.toolbar_draw_order_reversed = False
     
-    adventure.choice_position = "center"
+    adventure.choice_position = "right"
     adventure.choice_frame = "adventure/images/choice-frame.png"
-    adventure.choice_frame_hover = None
+    adventure.choice_frame_hover = "adventure/images/choice-frame-hover.png"
     adventure.choice_frame_selected = None
     adventure.choice_textcolor = "#000000"
     adventure.choice_textcolor_hover = "#ffff00"
@@ -108,6 +108,9 @@ init -10 python:
     
     adventure.margins = {
        "adventure/images/choice-frame.png": {
+         "left": 400, "top": 36, "right": 36, "bottom": 36
+       },
+       "adventure/images/choice-frame-hover.png": {
          "left": 400, "top": 36, "right": 36, "bottom": 36
        }
     }
@@ -229,6 +232,8 @@ init -10 python:
 
     adventure.choice_positions = {
         "center": {
+            "xpos": 0.5,
+            "ypos": 0.5,
             "xanchor": 0.5,
             "yanchor": 0.5,
             "yalign": 0.5,
@@ -236,6 +241,8 @@ init -10 python:
             "height": None
         },
         "top": {
+            "xpos": 0.5,
+            "ypos": 0,
             "xanchor": 0.5,
             "yanchor": 0,
             "yalign": 0,
@@ -243,6 +250,8 @@ init -10 python:
             "height": None
         },
         "bottom": {
+            "xpos": 0.5,
+            "ypos": 1.0,
             "xanchor": 0.5,
             "yanchor": 1.0,
             "yalign": 1.0,
@@ -250,6 +259,8 @@ init -10 python:
             "height": None
         },
         "left": {
+            "xpos": 0,
+            "ypos": 0,
             "xanchor": 0,
             "yanchor": 0,
             "yalign": 0,
@@ -257,6 +268,8 @@ init -10 python:
             "height": 1
         },
         "right": {
+            "xpos": 1 - 0.33,
+            "ypos": 0,
             "xanchor": 1,
             "yanchor": 0,
             "yalign": 0,
@@ -915,8 +928,7 @@ init -10 python:
             self.bgzoom = bgzoom
             
             # Get margins from registry or use default
-            # margins = adventure.margins.get(image_file, {"top": 16, "left": 16, "right": 16, "bottom": 16})
-            margins = adventure.margins[adventure.choice_frame]
+            margins = adventure.margins[image_file]
             self.margin_top = margins["top"]
             self.margin_left = margins["left"] 
             self.margin_right = margins["right"]
@@ -990,12 +1002,14 @@ init -10 python:
             actual_bottom_height = int(self.margin_bottom * self.bgzoom)
             
             # Calculate minimum frame size needed
-            min_width = actual_left_width + actual_right_width
-            min_height = actual_top_height + actual_bottom_height
+            # min_width = actual_left_width + actual_right_width
+            # min_height = actual_top_height + actual_bottom_height
+            min_width = actual_left_width + actual_right_width + child_width - 100
+            min_height = actual_top_height + actual_bottom_height + child_height + 20
             
             # Determine actual frame size
-            frame_width = max(min_width, child_width, width if width < 999999 else min_width)
-            frame_height = max(min_height, child_height, height if height < 999999 else min_height)
+            frame_width = max(min_width, width if width < 999999 else min_width)
+            frame_height = max(min_height, height if height < 999999 else min_height)
             
             # Calculate stretching dimensions
             stretch_width = int(frame_width - actual_left_width - actual_right_width)
@@ -1208,6 +1222,29 @@ init -10 python:
     # Initialize the mouse position variables
     store.mousePosition = getMousePosition()
     
+    # <def>
+    def adventure_measure_text_height(text_content, width, **text_properties):
+        # Create a Text displayable with your properties
+        text_obj = Text(text_content, **text_properties)
+        
+        # Render it at the specified width
+        rendered = renpy.render(text_obj, width, 999999, 0, 0)
+        
+        # Get the actual height
+        text_width, text_height = rendered.get_size()
+        return text_height
+    # </def>
+    
+    # <def>
+    def adventure_measure_height_at_width(displayable, constrained_width, constrained_height=9999):
+        # Render with constrained width but unlimited height
+        rendered = renpy.render(displayable, constrained_width, constrained_height, 0, 0)
+        
+        # Get the height it needs at that width
+        width, height = rendered.get_size()
+        return height
+    # </def>
+
     # <def>
     def adventure_point_in_icon(x, y, icon):
         center_x, center_y = icon["position"]
@@ -1682,11 +1719,11 @@ by Jeffrey R. Day ({{a=https://ko-fi.com/F2F61JR2B4}}Donate to Support{{/a}})"""
     # </def>
     
     # Register tag as invisible in text display
-    config.custom_text_tags["prompt"] = lambda tag, argument: ""
-    config.custom_text_tags["event"] = lambda tag, argument: ""
-    config.custom_text_tags["cancel"] = lambda tag, argument: ""
-    config.custom_text_tags["done"] = lambda tag, argument: ""
-    config.custom_text_tags["disabled"] = lambda tag, argument: ""
+    config.custom_text_tags["prompt"] = lambda tag, argument, contents: contents
+    config.custom_text_tags["event"] = lambda tag, argument, contents: contents
+    config.custom_text_tags["cancel"] = lambda tag, argument, contents: contents
+    config.custom_text_tags["done"] = lambda tag, argument, contents: contents
+    config.custom_text_tags["disabled"] = lambda tag, argument, contents: contents
 
     adventure.old_context_callback = config.context_callback
     config.context_callback = adventure_fix_message
@@ -2195,9 +2232,7 @@ screen adventure_alert_box(message, ok_action):
 # <screen>
 screen choice(items):
     modal True
-    
     $ geom = adventure.choice_positions[adventure.choice_position]
-    
     # <python>
     python:
         parsed_items = []
@@ -2211,36 +2246,101 @@ screen choice(items):
         # </for>
     # </python>
     
-    # Choice container at bottom
     # <frame>
     frame:
-        xalign geom["xanchor"]
-        yalign geom["yanchor"]
+        xpos (geom["xpos"])
+        ypos (geom["ypos"])
+        xanchor geom["xanchor"]
+        yanchor geom["yanchor"]
         xsize int(geom["width"] * config.screen_width)  # Fixed width
         ysize (None if geom["height"] == None else int(geom["height"] * config.screen_height))
         background "#00000066"
-        padding (20, 20)
+        padding (20, 5)
         
         # <vbox>
         vbox:
             xalign 0.5
-            spacing 15
+            spacing 5
+            ysize None
             xfill True
             # <for>
             for i in parsed_items:
-                # <textbutton>
-                textbutton i["caption"]:
-                    action i["action"]
-                    hover_sound "audio/hover.ogg"  # if you have hover sounds
-                    xfill True
-                    ysize 80
-                    text_size 24
-                    background AdventureNineSliceFrame(adventure.choice_frame, bgzoom = 0.25)
-                    text_color adventure.choice_textcolor
-                    text_hover_color adventure.choice_textcolor_hover
-                    text_selected_color adventure.choice_textcolor_selected
-                    padding (100, 4, 4, 4)
-                # </textbutton>
+                $ choice_type = "normal"
+                $ prompt = adventure_extract_tag("prompt", i["caption"])
+                $ isevent = adventure_extract_tag("event", i["caption"])
+                $ iscancel = adventure_extract_tag("cancel", i["caption"])
+                # <python>
+                python:
+                    match True:
+                        case True if isevent:
+                            choice_type = "event"
+                        case True if iscancel:
+                            choice_type = "cancel"
+                        # </case>
+                        case _:
+                            choice_type = "normal"
+                    # </match>
+                # </python>
+                # <if>
+                if prompt:
+                    null height 5
+                    text (i["caption"]):
+                        size 38
+                        color "#ffffff"
+                        xalign 0.5
+                        xfill True
+                        yfill False
+                        bold False
+                else:
+                    python:
+                        choice_icon = "adventure/images/choice-" + choice_type + ".png"
+                        
+                        my_width = int(geom["width"] * config.screen_width) - 80
+                        crazy_vbox = AdventureNineSliceFrame(adventure.choice_frame, bgzoom = 0.2, child=VBox(
+                            HBox(
+                                Null(width=40, height=1),
+                                VBox(Transform(Image(choice_icon), zoom=0.09), xsize=10, yfill=False, xmaximum=40, xanchor=0.5),
+                                Null(width=30, height=1),
+                                VBox(Text(i["caption"], size=24, color="#000000", bold=True, ypos=0.5, yanchor=0.5, yfill=False),
+                                yfill=False, xfill=True),
+                                Null(width=50, height=1),
+                                xalign=0, xmaximum=my_width, yalign=0.5
+                            ), spacing=0
+                        ))
+                        my_height = int(adventure_measure_height_at_width(crazy_vbox, my_width, 10))
+                        
+                    # <button>
+                    button:
+                        xfill True
+                        ysize my_height
+                        padding (0, 0, 0, 40)
+                        action i["action"]
+                        background AdventureNineSliceFrame(adventure.choice_frame, bgzoom = 0.2, child=VBox(
+                            HBox(
+                                Null(width=40, height=1),
+                                VBox(Transform(Image(choice_icon), zoom=0.09), xsize=10, yfill=False, xmaximum=40, xanchor=0.5),
+                                Null(width=30, height=1),
+                                VBox(Text(i["caption"], size=24, color="#000000", bold=True, ypos=0.5, yanchor=0.5, yfill=True),
+                                yfill=True, xfill=True),
+                                Null(width=50, height=1),
+                                xalign=0, xmaximum=my_width, yfill=False, yalign=0.5, background="#ff0000"
+                            ), spacing=0, ysize=(my_height-40)
+                        ))
+                        hover_background AdventureNineSliceFrame(adventure.choice_frame_hover, bgzoom = 0.2, child=VBox(
+                            HBox(
+                                Null(width=40, height=1),
+                                VBox(Transform(Image(choice_icon), zoom=0.09), xsize=10, ysize=10, yfill=False, xmaximum=40, xanchor=0.5),
+                                Null(width=30, height=1),
+                                VBox(Text(i["caption"], size=24, color="#ffff00", bold=True, ypos=0.5, yanchor=0.5, yfill=True),
+                                yfill=True, xfill=True),
+                                Null(width=50, height=1),
+                                xalign=0, xmaximum=my_width, yfill=False, yalign=0.5
+                            ), spacing=0, ysize=(my_height-40)
+                        ))
+                    # </button>
+                    null height 5
+                # </if>
+                null height 5
             # </for>
         # </vbox>
     # </frame>
