@@ -3,7 +3,7 @@
 **
 **   adventure.rpy - Adventure Module (for Ren'Py)
 **
-**   Version 0.2 revision 6
+**   Version 0.2 revision 7
 **
 **************************************************************************
 This module is released under the MIT License:
@@ -34,7 +34,7 @@ DEALINGS IN THE SOFTWARE.
 
 define ADVENTURE_VERSION_MAJOR = 0
 define ADVENTURE_VERSION_MINOR = 2
-define ADVENTURE_VERSION_REVISION = 6
+define ADVENTURE_VERSION_REVISION = 7
 
 define ADVENTURE_UNSET = "unset"
 
@@ -78,6 +78,7 @@ init -10 python:
     adventure.tooltip_size = 18
     adventure.tooltip_bg_opacity = 0.5
     adventure.action_tip = True
+    adventure.guiscale = 2
 
     adventure.images_base = "adventure/images"
     adventure.iconset = "free-icons"
@@ -108,11 +109,11 @@ init -10 python:
     
     adventure.margins = {
        "adventure/images/choice-frame.png": {
-         "left": 400, "top": 36, "right": 36, "bottom": 36
+           "left": 400, "top": 36, "right": 36, "bottom": 36
        },
        "adventure/images/choice-frame-hover.png": {
-         "left": 400, "top": 36, "right": 36, "bottom": 36
-       }
+           "left": 400, "top": 36, "right": 36, "bottom": 36
+       },
     }
 
     adventure.toolbar_hints = {
@@ -307,6 +308,7 @@ init -10 python:
     adventure.target_x = -1
     adventure.target_y = -1
     adventure._temp_return = ""
+    adventure.plugin_metrics = {}
     adventure.iconSizes = {}
     adventure.screen_icons = []
     adventure.debug_show_inactive = False
@@ -320,6 +322,13 @@ init -10 python:
     build.classify('game/adventure/adventure-editor.rpy', None)
     build.classify('game/adventure/adventure-editor.rpyc', None)
     build.classify('game/adventure/images/editor-icons/**', None)
+
+    # <def>
+    def adventure_get_relative_path(icon_file, base_path=None):
+        base_path = base_path or renpy.config.gamedir
+        relative_path = os.path.relpath(icon_file, base_path)
+        return relative_path.replace(os.sep, '/')
+    # </def>
 
     # <def>
     def adventure_custom_link(target):
@@ -928,7 +937,12 @@ init -10 python:
             self.bgzoom = bgzoom
             
             # Get margins from registry or use default
-            margins = adventure.margins[image_file]
+            # <if>
+            if image_file in adventure.margins:
+                margins = adventure.margins[image_file]
+            else:
+                margins = {"top": 16, "left": 16, "right": 16, "bottom": 16 }
+            # </if>
             self.margin_top = margins["top"]
             self.margin_left = margins["left"] 
             self.margin_right = margins["right"]
@@ -1683,7 +1697,7 @@ by Jeffrey R. Day ({{a=https://ko-fi.com/F2F61JR2B4}}Donate to Support{{/a}})"""
 
     # <def>
     def adventure_tooltip():
-        return GetTooltip() or None if adventure.last_hint == None else adventure_capitalize_first_letter(adventure.last_hint)
+        return GetTooltip() or (None if adventure.last_hint == None else adventure_capitalize_first_letter(adventure.last_hint))
     # </def>
 
     # <def>
@@ -1742,9 +1756,48 @@ init 1500 python:  # Very late in the init process
 screen adventure_toolbar():
 
     python:
-        toolbar_length = 10
-        valid_icons = []
+        tbiconbase = adventure.toolbar_icons_base + "/" + adventure.toolbar_iconset
+        if tbiconbase in adventure.plugin_metrics:
+            metrics = adventure.plugin_metrics[tbiconbase]
+        else:
+            metrics = {}
+        if not "toolbar_top_padding" in metrics:
+            metrics["toolbar_top_padding"] = 0
+        if not "toolbar_left_padding" in metrics:
+            metrics["toolbar_left_padding"] = 0
+        if not "toolbar_right_padding" in metrics:
+            metrics["toolbar_right_padding"] = 0
+        if not "toolbar_bottom_padding" in metrics:
+            metrics["toolbar_bottom_padding"] = 0
+        if not "toolbar_vertical_spacing" in metrics:
+            metrics["toolbar_vertical_spacing"] = 0
+        if not "toolbar_horizontal_spacing" in metrics:
+            metrics["toolbar_horizontal_spacing"] = 0
+        if not "toolbar_active_icon_offset" in metrics:
+            metrics["toolbar_active_icon_offset"] = (0, 0)
+        if not "toolbar_inactive_icon_offset" in metrics:
+            metrics["toolbar_inactive_icon_offset"] = (0, 0)
+        if not "toolbar_active_button_offset" in metrics:
+            metrics["toolbar_active_button_offset"] = (0, 0)
+        if not "toolbar_inactive_button_offset" in metrics:
+            metrics["toolbar_inactive_button_offset"] = (0, 0)
+
+        vertical_padding = (metrics["toolbar_top_padding"] + metrics["toolbar_bottom_padding"]);
+        horizontal_padding = (metrics["toolbar_left_padding"] + metrics["toolbar_right_padding"]);
         vertical = adventure.toolbar_position in ["right", "left"]
+        # <if>
+        if vertical:
+            length_padding = vertical_padding
+            depth_padding = horizontal_padding
+        else:
+            length_padding = horizontal_padding
+            depth_padding = vertical_padding
+        # </if>
+        toolbar_length = int(length_padding * adventure.toolbar_iconzoom/0.1)
+        toolbar_depth_pad = int(depth_padding * adventure.toolbar_iconzoom/0.1)
+        toolbar_left_pad = int(metrics["toolbar_left_padding"] * adventure.toolbar_iconzoom / 0.1)
+        toolbar_top_pad = int(metrics["toolbar_top_padding"] * adventure.toolbar_iconzoom / 0.1)
+        valid_icons = []
         icon_width = adventure.toolbar_iconzoom * adventure.iconSizes[
                 adventure.toolbar_icons_base + "/" + adventure.toolbar_iconset + "/toolbar-inactive.png"
             ][0]
@@ -1753,10 +1806,13 @@ screen adventure_toolbar():
             ][1]
         icon_length = icon_height if vertical else icon_width
         icon_depth = icon_width if vertical else icon_height
+        toolbar_spacing = (metrics["toolbar_vertical_spacing"] if vertical else metrics["toolbar_horizontal_spacing"]) * (adventure.toolbar_iconzoom/0.1)
         # <for>
         for icon in adventure.toolbar_icons:
             # <if>
             if icon in adventure.tool_icons:
+                if len(valid_icons):
+                    toolbar_length += toolbar_spacing
                 valid_icons.append(icon)
                 toolbar_length += icon_length
             else:
@@ -1775,7 +1831,7 @@ screen adventure_toolbar():
         # <if>
         if vertical:
             toolbar_max_length = config.screen_height - adventure.toolbar_margin_start - adventure.toolbar_margin_end
-            toolbar_width = int(icon_depth + 10)
+            toolbar_width = int(icon_depth) + toolbar_depth_pad
             toolbar_height = int(toolbar_length)
             toolbar_anchor_indent = (toolbar_max_length - toolbar_length) * adventure.toolbar_anchor
             toolbar_x = int(
@@ -1787,14 +1843,14 @@ screen adventure_toolbar():
                 + toolbar_anchor_indent # plus indent
             )
             # where we begin drawing icons in drawing order
-            toolbar_start_x = toolbar_x + 5
-            toolbar_start_y = toolbar_y + 5
+            toolbar_start_x = toolbar_x + toolbar_left_pad
+            toolbar_start_y = toolbar_y + toolbar_top_pad
             toolbar_inc_x = 0
-            toolbar_inc_y = icon_depth
+            toolbar_inc_y = icon_length + toolbar_spacing
         else:
             toolbar_max_length = config.screen_width - adventure.toolbar_margin_start - adventure.toolbar_margin_end
             toolbar_width = int(toolbar_length)
-            toolbar_height = int(icon_depth + 10)
+            toolbar_height = int(icon_depth) + toolbar_depth_pad
             toolbar_anchor_indent = (toolbar_max_length - toolbar_length) * adventure.toolbar_anchor
             toolbar_y = int(
                 + toolbar_base * config.screen_height # far edge
@@ -1804,9 +1860,9 @@ screen adventure_toolbar():
                 + adventure.toolbar_margin_start # or margin
                 + toolbar_anchor_indent # plus indent
             )
-            toolbar_start_x = toolbar_x + 5
-            toolbar_start_y = toolbar_y + 5
-            toolbar_inc_x = icon_depth
+            toolbar_start_x = toolbar_x + toolbar_left_pad
+            toolbar_start_y = toolbar_y + toolbar_top_pad
+            toolbar_inc_x = icon_length + toolbar_spacing
             toolbar_inc_y = 0
         # </if>
 
@@ -1814,16 +1870,14 @@ screen adventure_toolbar():
         this_y = toolbar_start_y
     # </python>
 
-    # <add>
-    
-    add (adventure.toolbar_icons_base + "/" + adventure.toolbar_iconset + "/toolbar-bg.png"):
-        fit "fill"
-        xpos toolbar_x
-        ypos toolbar_y
-        xsize toolbar_width
-        ysize toolbar_height
-        alpha adventure.toolbar_bg_opacity
-    # </add>
+    # <frame>
+    frame:
+        background Transform(AdventureNineSliceFrame((adventure.toolbar_icons_base + "/" + adventure.toolbar_iconset + "/toolbar-bg.png"), bgzoom = adventure.toolbar_iconzoom), alpha=adventure.toolbar_bg_opacity)
+        xpos int(toolbar_x - 1)
+        ypos int(toolbar_y)
+        xsize int(toolbar_width)
+        ysize int(toolbar_height)
+    # </frame>
 
     # <for>
     for icon in valid_icons:
@@ -1832,18 +1886,20 @@ screen adventure_toolbar():
             status = "active" if icon == adventure.active_tool else "inactive"
         # </python>
         add (adventure.toolbar_icons_base + "/" + adventure.toolbar_iconset + "/toolbar-" + status + ".png"):
-            xpos int(this_x)
-            ypos int(this_y)
-            fit "fill"
-            xsize int(icon_width)
-            ysize int(icon_height)
+            xpos int(this_x + metrics["toolbar_" + status + "_button_offset"][0] * adventure.toolbar_iconzoom / 0.1)
+            ypos int(this_y + metrics["toolbar_" + status + "_button_offset"][1] * adventure.toolbar_iconzoom / 0.1)
+            xanchor 1
+            yanchor 1
+            zoom adventure.toolbar_iconzoom
         add (adventure.toolbar_icons_base + "/" + adventure.toolbar_iconset + "/" + adventure.tool_icons[icon]):
-            xpos int(this_x + icon_width // 2)
-            ypos int(this_y + icon_height // 2)
-            fit "fill"
+            xpos int(this_x + metrics["toolbar_" + status + "_icon_offset"][0] * adventure.toolbar_iconzoom/0.1 + icon_width / 2)
+            ypos int(this_y + metrics["toolbar_" + status + "_icon_offset"][1] * adventure.toolbar_iconzoom/0.1 + icon_height / 2)
             zoom adventure.toolbar_iconzoom
             xanchor 0.5
             yanchor 0.5
+            # fit "contain"
+            # xsize int(icon_width)
+            # ysize int(icon_height)
         button:
             xpos int(this_x)
             ypos int(this_y)

@@ -138,6 +138,11 @@ MIT License - see [LICENSE](LICENSE) file for details.
 
 ## Changelog
 
+### 0.2.7
+- Added iconset metrics
+- Editor GUI can be scaled with `adventure.guiscale = 2`
+  - Tested with 1, 1.5, 2 (new default), 2.5, 3
+
 ### 0.2.6
 - Added magic choice text tags:
   - {prompt}, question at top of choice prompt

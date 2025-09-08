@@ -688,12 +688,6 @@ init python:
     # </def adventure_compare_icon_files>
     
     # <def>
-    def adventure_get_relative_path(icon_file):
-        relative_path = os.path.relpath(icon_file, renpy.config.gamedir)
-        return relative_path.replace(os.sep, '/')    
-    # </def>
-
-    # <def>
     def adventure_compare_install_icons(new_icon, proceed = False):
         cand = os.path.join(renpy.config.gamedir, "gui/window_icon_candidate.png")
         adventure_create_scaled_png(new_icon, cand, 128, 128)     
