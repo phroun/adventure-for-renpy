@@ -3,7 +3,7 @@
 **
 **   adventure-editor.rpy - Editor for Adventure Module (for Ren'Py)
 **
-**   Version 0.2 revision 7
+**   Version 0.2 revision 8
 **
 **************************************************************************
 This module is released under the MIT License:
@@ -34,7 +34,7 @@ DEALINGS IN THE SOFTWARE.
 
 define ADVENTURE_EDITOR_VERSION_MAJOR = 0
 define ADVENTURE_EDITOR_VERSION_MINOR = 2
-define ADVENTURE_EDITOR_VERSION_REVISION = 7
+define ADVENTURE_EDITOR_VERSION_REVISION = 8
 
 define ADVENTURE_EDITOR_TOOL_PLAY = 0
 define ADVENTURE_EDITOR_TOOL_SELECT = 1
@@ -60,12 +60,19 @@ init python:
     adventure.editor_width = int(126 * adventure.guiscale)
     adventure.editor_height = int(360 * adventure.guiscale)
     adventure.editor_top = (config.screen_height - adventure.editor_height) // 2
+    adventure.editor_left = 20
     adventure.editor_last_targids = []
     adventure.editorLayer = ADVENTURE_EDITOR_LAYER_EX
     adventure.editorTool = ADVENTURE_EDITOR_TOOL_PLAY
     adventure.pointMode = ADVENTURE_EDITOR_POINT_MOVE
     adventure.pointId = 0
     adventure.editor_icons = "adventure/images/editor-icons"
+    adventure.editor_hidden = False
+    adventure.dragging = False
+    adventure.dragging_origin_x = 0
+    adventure.dragging_origin_y = 0
+    adventure.dragging_start_x = 0
+    adventure.dragging_start_y = 0
 
     # <def>
     def adventure_get_polygon_weighted_center(points, density_radius=50):
@@ -324,6 +331,12 @@ init python:
     # </def adventure_create_gradient>
 
     # <def>
+    def adventure_hide_editor():
+        adventure.editor_hidden = True
+        renpy.restart_interaction()
+    # </def>
+
+    # <def>
     def set_play_mode():
         # <if>
         if adventure.modalFreeze == 0:
@@ -334,7 +347,7 @@ init python:
             renpy.restart_interaction()
         # </if>
     # </def set_play_mode>
-
+    
     # <def>
     def set_select_mode():
         # <if>
@@ -723,6 +736,41 @@ init python:
             return []
         # </def visit>
     # </class Circle>
+    
+    # <class>
+    class AdventureMouseDragHandle(renpy.Displayable):
+        def __init__(self, width, height, child, down_action, tooltip=None):
+            super(AdventureMouseDragHandle, self).__init__()
+            self.width = width
+            self.height = height
+            self.child = child
+            self.down_action = down_action
+            self.tooltip = tooltip
+            self.hovered = False
+            
+        def render(self, width, height, st, at):
+            child_render = renpy.render(self.child, self.width, self.height, st, at)
+            return child_render
+            
+        def event(self, ev, x, y, st):
+            mouse_in_bounds = 0 <= x < self.width and 0 <= y < self.height
+            
+            # Handle cursor changes with pygame
+            if mouse_in_bounds and not self.hovered:
+                self.hovered = True
+                default_mouse = "hand"
+            elif not mouse_in_bounds and self.hovered:
+                self.hovered = False
+                default_mouse = "default"
+
+            if ev.type == pygame.MOUSEBUTTONDOWN and ev.button == 1:
+                if 0 <= x < self.width and 0 <= y < self.height:
+                    self.down_action()
+                    renpy.redraw(self, 0)
+                    return True
+            
+            return None
+    # </class>
 
     # <def>
     def adventure_editor_mouse(current_x, current_y):
@@ -891,6 +939,33 @@ init python:
             renpy.restart_interaction()
         # </if>
     # </def adventure_create_new_icon>
+
+    # <def>
+    def adventure_begin_drag_editor():
+        adventure.dragging_origin_x = adventure.mousex
+        adventure.dragging_origin_y = adventure.mousey
+        adventure.dragging_start_x = adventure.editor_left
+        adventure.dragging_start_y = adventure.editor_top
+        adventure.dragging = True
+        # adventure.screen_should_exit = True
+        renpy.restart_interaction()
+    # </def adventure_toggle_editor_pos>
+
+    # <def>
+    def adventure_end_drag_editor():
+        adventure.dragging = False
+
+        if adventure.editor_left + adventure.editor_width < 40:
+            adventure.editor_left = 40 - adventure.editor_width
+        if adventure.editor_top < 0:
+            adventure.editor_top = 0
+        if adventure.editor_left > config.screen_width - 40:
+            adventure.editor_left = config.screen_width - 40
+        if adventure.editor_top > config.screen_height - 40:
+            adventure.editor_top = config.screen_height - 40
+        
+        # adventure.screen_should_exit = True
+    # </def adventure_toggle_editor_pos>
     
     # <def>
     def adventure_toggle_editor_pos():
@@ -927,6 +1002,25 @@ init python:
             renpy.restart_interaction()
         # </if>
     # </def get_interactable_tag>
+
+
+    # <def>
+    def adventure_editor_event(ev, x, y, st):
+        # <if>
+        if ev.type in [pygame.MOUSEBUTTONDOWN]:
+            adventure.editor_hidden = False
+        # </if>
+        # <if>
+        if adventure.dragging and ev.type == pygame.MOUSEMOTION:
+            adventure.editor_top = adventure.dragging_start_y - adventure.dragging_origin_y + y
+            adventure.editor_left = adventure.dragging_start_x - adventure.dragging_origin_x + x
+            renpy.restart_interaction()
+        # </if>
+        # <if>
+        if adventure.dragging and ev.type == pygame.MOUSEBUTTONUP:
+            adventure_end_drag_editor()
+        # </if>
+    # </def>
     
     # <def>
     def adventure_editor_input():
@@ -1060,6 +1154,7 @@ init python:
         # </for>
         return chunks
     # </def>
+
 # </init python>
 
 # <label>
@@ -1079,7 +1174,7 @@ screen adventure_editor():
         icon_browse = False
         adventure.editor_width = int(126 * adventure.guiscale)
         adventure.editor_height = int(360 * adventure.guiscale)
-        adventure.editor_top = (config.screen_height - adventure.editor_height) // 2
+        # adventure.editor_top = (config.screen_height - adventure.editor_height) // 2
         
         # <def>
         def guiscale(pix):
@@ -1092,7 +1187,8 @@ screen adventure_editor():
             adventure.interactableId = 0
             adventure.lastRoom = adventure.roomName
         # </if>
-        editor_x = 20 if (adventure.editorPos == 0) else (config.screen_width - (adventure.editor_width + 20))
+        editor_x = adventure.editor_left
+        # 20 if (adventure.editorPos == 0) else (config.screen_width - (adventure.editor_width + 20))
         adventure.debug_show_inactive = adventure.editorTool != ADVENTURE_EDITOR_TOOL_PLAY
     # </python>
     
@@ -1100,7 +1196,7 @@ screen adventure_editor():
 
     $ adventure.visibleMode = "default" if adventure.editorTool == ADVENTURE_EDITOR_TOOL_PLAY else get_edit_tool_mode()
     # <if>
-    if adventure.editorTool != ADVENTURE_EDITOR_TOOL_PLAY:
+    if adventure.editorTool != ADVENTURE_EDITOR_TOOL_PLAY and not adventure.dragging:
         # <for>
         for i in range(len(adventure.room)):
             # <if>
@@ -1178,594 +1274,570 @@ screen adventure_editor():
     
     # EDITOR GUI ELEMENTS:
 
-    # <frame>
-    frame:
-        background Frame(Solid("#FFFFFF"), guiscale(2), guiscale(2), tile=False)
-        xpos editor_x - guiscale(5)
-        ypos adventure.editor_top
-        xsize (adventure.editor_width + guiscale(10))
-        ysize (adventure.editor_height + guiscale(4))
-        padding (guiscale(2), guiscale(2))
+    # <if>
+    if not adventure.editor_hidden:
+        # <frame>
+        frame:
+            background Frame(Solid("#FFFFFF"), guiscale(2), guiscale(2), tile=False)
+            xpos editor_x - guiscale(5)
+            ypos adventure.editor_top
+            xsize (adventure.editor_width + guiscale(10))
+            ysize (adventure.editor_height + guiscale(4))
+            padding (guiscale(2), guiscale(2))
 
-        # <vbox>
-        vbox:
-            # Title bar with background
-            # <button>
-            button:
-                background adventure_create_gradient(adventure.editor_width + guiscale(6), guiscale(20), "#00FFBB", "#006633", "vertical")
-                action Function(adventure_toggle_editor_pos)
-                tooltip "Toggle Editor Position"
-                xfill True
-                ysize guiscale(20)
-                padding (guiscale(5), guiscale(2))
+            # <vbox>
+            vbox:
+                # Title bar with background
+                add AdventureMouseDragHandle(
+                    adventure.editor_width + guiscale(6),
+                    guiscale(20),
+                    Fixed(
+                        adventure_create_gradient(adventure.editor_width + guiscale(6), guiscale(20), "#00FFBB", "#006633", "vertical"),
+                        Text("Location Editor", size=int(11 * adventure.guiscale), bold=True, color="#FFFFFF", xalign=0.5, yalign=0.5)
+                    ),
+                    adventure_begin_drag_editor,
+                    tooltip="Drag to Position Editor"
+                )
 
                 # <if>
-                if adventure.editorPos == 0:
-                    text "Location Editor ▷" size (11 * adventure.guiscale) bold True color "#FFFFFF" xalign 0.5 yalign 0.5
-                else:
-                    text "◁ Location Editor" size (11 * adventure.guiscale) bold True color "#FFFFFF" xalign 0.5 yalign 0.5
+                # if adventure.editorPos == 0:
+                #     text "Location Editor ▷" size (11 * adventure.guiscale) bold True color "#FFFFFF" xalign 0.5 yalign 0.5
+                # else:
+                #     text "◁ Location Editor" size (11 * adventure.guiscale) bold True color "#FFFFFF" xalign 0.5 yalign 0.5
                 # </if>
-            # </button>
 
-            # Main content with NullAction button
-            # <frame>
-            frame:
-                xfill True
-                yfill True
-                background None
-                padding (0, 0)
-                
-                add Solid("#000000")
+                # Main content with NullAction button
+                # <frame>
+                frame:
+                    xfill True
+                    yfill True
+                    background None
+                    padding (0, 0)
+                    
+                    add Solid("#000000")
 
-                # <vbox>
-                vbox:
-                    # <hbox>
-                    # Tool icons section - horizontal layout
-                    hbox:
-                        spacing guiscale(2)  # Space between icons
-                        xpos guiscale(2)    # Position from left edge
-                        ypos guiscale(2)    # Position from top edge
-                        ysize guiscale(60)
-                        #yfill True
+                    # <vbox>
+                    vbox:
+                        # <hbox>
+                        # Tool icons section - horizontal layout
+                        hbox:
+                            spacing guiscale(2)  # Space between icons
+                            xpos guiscale(2)    # Position from left edge
+                            ypos guiscale(2)    # Position from top edge
+                            ysize guiscale(60)
+                            #yfill True
 
-                        # <button>
-                        button:
-                            action Function(set_play_mode)
-                            tooltip "Play Test Mode"
-                            background (Solid("#ccffee") if adventure.editorTool == ADVENTURE_EDITOR_TOOL_PLAY else Solid("#cccccc"))
-                            hover_background Solid("#ffffff")
-                            xysize (guiscale(24), guiscale(24))  # Size of the button
-                            padding (0, 0)   # Internal padding
-                            
-                            # <add>
-                            add (adventure.editor_icons + "/editor-play.png"):
-                                fit "contain"
-                                xalign 0.5
-                                yalign 0.5
-                            # </add>
-                        # </button>
-                        # <button>
-                        button:
-                            action Function(set_select_mode)
-                            tooltip "Select Polygons or Icons"
-                            background (Solid("#ccffee") if adventure.editorTool == ADVENTURE_EDITOR_TOOL_SELECT else Solid("#cccccc"))
-                            hover_background Solid("#ffffff")
-                            xysize (guiscale(24), guiscale(24))  # Size of the button
-                            padding (0, 0)   # Internal padding
-                            
-                            # <add>
-                            add (adventure.editor_icons + "/editor-select.png"):
-                                fit "contain"
-                                xalign 0.5
-                                yalign 0.5
-                            # </add>
-                        # </button>
-                        # <button>
-                        button:
-                            action Function(set_pointedit_mode)
-                            tooltip "Edit Points or Position"
-                            background (Solid("#ccffee") if adventure.editorTool == ADVENTURE_EDITOR_TOOL_EDIT else Solid("#cccccc"))
-                            hover_background Solid("#ffffff")
-                            xysize (guiscale(24), guiscale(24))
-                            padding (0, 0)
-                            
-                            # <add>
-                            add (adventure.editor_icons + "/editor-edit-point.png"):
-                                fit "contain"
-                                xalign 0.5
-                                yalign 0.5
-                            # </add>
-                        # </button>
-                        # <button>
-                        button:
-                            action Function(adventure_create_new_icon)
-                            tooltip "Create New Interaction Icon"
-                            background Solid("#cccccc")
-                            hover_background Solid("#ffffff")
-                            xysize (guiscale(24), guiscale(24))
-                            padding (0, 0)
-                            
-                            # <add>
-                            add (adventure.editor_icons + "/editor-new-icon.png"):
-                                fit "contain"
-                                xalign 0.5
-                                yalign 0.5
-                            # </add>
-                        # </button>
-                        # <button>
-                        button:
-                            action Function(adventure_create_new_polygon)
-                            tooltip "Create New Polygon"
-                            background Solid("#cccccc")
-                            hover_background Solid("#ffffff")
-                            xysize (guiscale(24), guiscale(24))
-                            padding (0, 0)
-                            
-                            # <add>
-                            add (adventure.editor_icons + "/editor-new-polygon.png"):
-                                fit "contain"
-                                xalign 0.5
-                                yalign 0.5
-                            # </add>
-                        # </button>
-                    # </hbox> 
-                    # <if>
-                    if adventure.editorTool != ADVENTURE_EDITOR_TOOL_PLAY and len(adventure.room) > 0:
-                        # <button>
-                        button:
-                            background adventure_create_gradient(adventure.editor_width + guiscale(6), guiscale(20), "#330000", "#660000", "vertical")
-                            hover_background adventure_create_gradient(adventure.editor_width + guiscale(6), guiscale(20), "#660000", "#990000", "vertical")
-                            action Function(get_interactable_tag)
-                            tooltip "Set Object Tag"
-                            xfill True
-                            ysize guiscale(20)
+                            # <button>
+                            button:
+                                action Function(set_play_mode)
+                                tooltip "Play Test Mode"
+                                background (Solid("#ccffee") if adventure.editorTool == ADVENTURE_EDITOR_TOOL_PLAY else Solid("#cccccc"))
+                                hover_background Solid("#ffffff")
+                                xysize (guiscale(24), guiscale(24))  # Size of the button
+                                padding (0, 0)   # Internal padding
+                                
+                                # <add>
+                                add (adventure.editor_icons + "/editor-play.png"):
+                                    fit "contain"
+                                    xalign 0.5
+                                    yalign 0.5
+                                # </add>
+                            # </button>
+                            # <button>
+                            button:
+                                action Function(set_select_mode)
+                                tooltip "Select Polygons or Icons"
+                                background (Solid("#ccffee") if adventure.editorTool == ADVENTURE_EDITOR_TOOL_SELECT else Solid("#cccccc"))
+                                hover_background Solid("#ffffff")
+                                xysize (guiscale(24), guiscale(24))  # Size of the button
+                                padding (0, 0)   # Internal padding
+                                
+                                # <add>
+                                add (adventure.editor_icons + "/editor-select.png"):
+                                    fit "contain"
+                                    xalign 0.5
+                                    yalign 0.5
+                                # </add>
+                            # </button>
+                            # <button>
+                            button:
+                                action Function(set_pointedit_mode)
+                                tooltip "Edit Points or Position"
+                                background (Solid("#ccffee") if adventure.editorTool == ADVENTURE_EDITOR_TOOL_EDIT else Solid("#cccccc"))
+                                hover_background Solid("#ffffff")
+                                xysize (guiscale(24), guiscale(24))
+                                padding (0, 0)
+                                
+                                # <add>
+                                add (adventure.editor_icons + "/editor-edit-point.png"):
+                                    fit "contain"
+                                    xalign 0.5
+                                    yalign 0.5
+                                # </add>
+                            # </button>
+                            # <button>
+                            button:
+                                action Function(adventure_create_new_icon)
+                                tooltip "Create New Interaction Icon"
+                                background Solid("#cccccc")
+                                hover_background Solid("#ffffff")
+                                xysize (guiscale(24), guiscale(24))
+                                padding (0, 0)
+                                
+                                # <add>
+                                add (adventure.editor_icons + "/editor-new-icon.png"):
+                                    fit "contain"
+                                    xalign 0.5
+                                    yalign 0.5
+                                # </add>
+                            # </button>
+                            # <button>
+                            button:
+                                action Function(adventure_create_new_polygon)
+                                tooltip "Create New Polygon"
+                                background Solid("#cccccc")
+                                hover_background Solid("#ffffff")
+                                xysize (guiscale(24), guiscale(24))
+                                padding (0, 0)
+                                
+                                # <add>
+                                add (adventure.editor_icons + "/editor-new-polygon.png"):
+                                    fit "contain"
+                                    xalign 0.5
+                                    yalign 0.5
+                                # </add>
+                            # </button>
+                        # </hbox>
+                        # <if>
+                        if adventure.editorTool != ADVENTURE_EDITOR_TOOL_PLAY and len(adventure.room) > 0:
+                            # <button>
+                            button:
+                                background adventure_create_gradient(adventure.editor_width + guiscale(6), guiscale(20), "#330000", "#660000", "vertical")
+                                hover_background adventure_create_gradient(adventure.editor_width + guiscale(6), guiscale(20), "#660000", "#990000", "vertical")
+                                action Function(get_interactable_tag)
+                                tooltip "Set Object Tag"
+                                xfill True
+                                ysize guiscale(20)
 
-                            $ cur_interactabletag = adventure_escape_renpy(adventure.room[adventure.interactableId]["tag"])
-                            # <if>
-                            if cur_interactabletag == "":
-                                text "[[untagged]" size (12 * adventure.guiscale) bold True color "#999999" xpos (adventure.editor_width // 2) xanchor 0.5 ypos 0
-                            else:
-                                text cur_interactabletag size (12 * adventure.guiscale) bold False color "#FFFFFF" xpos ((adventure.editor_width // 2) - guiscale(2)) xanchor 0.5 ypos 0
-                            # </if>
-                        # </button>
-                    else:
+                                $ cur_interactabletag = adventure_escape_renpy(adventure.room[adventure.interactableId]["tag"])
+                                # <if>
+                                if cur_interactabletag == "":
+                                    text "[[untagged]" size (12 * adventure.guiscale) bold True color "#999999" xpos (adventure.editor_width // 2) xanchor 0.5 ypos 0
+                                else:
+                                    text cur_interactabletag size (12 * adventure.guiscale) bold False color "#FFFFFF" xpos ((adventure.editor_width // 2) - guiscale(2)) xanchor 0.5 ypos 0
+                                # </if>
+                            # </button>
+                        else:
+                            # <button>
+                            button:
+                                action NullAction()
+                                background None  # Transparent
+                                xfill True
+                                ysize guiscale(20)
+                            # </button>
+                        # </if>
+
                         # <button>
                         button:
                             action NullAction()
                             background None  # Transparent
                             xfill True
-                            ysize guiscale(20)
+                            ysize guiscale(30)
                         # </button>
-                    # </if>
-
-                    # <button>
-                    button:
-                        action NullAction()
-                        background None  # Transparent
-                        xfill True
-                        ysize guiscale(30)
-                    # </button>
-                    # <if>
-                    if get_interactable_type() == "polygon":
                         # <if>
-                        if adventure.editorTool == ADVENTURE_EDITOR_TOOL_EDIT:
+                        if get_interactable_type() == "polygon":
+                            # <if>
+                            if adventure.editorTool == ADVENTURE_EDITOR_TOOL_EDIT:
+                                # <hbox>
+                                # Tool icons section - horizontal layout
+                                hbox:
+                                    spacing guiscale(2)  # Space between icons
+                                    xpos guiscale(2)    # Position from left edge
+                                    ypos guiscale(2)    # Position from top edge
+                                    # <button>
+                                    button:
+                                        action Function(set_pointmode)
+                                        tooltip "New Point After"
+                                        background (Solid("#ff3333") if adventure.pointMode == ADVENTURE_EDITOR_POINT_ADD else Solid("#cccccc"))
+                                        hover_background (Solid("#ffcc33") if adventure.pointMode == ADVENTURE_EDITOR_POINT_ADD else Solid("#ffffff"))
+                                        xysize (guiscale(24), guiscale(24))  # Size of the button
+                                        padding (0, 0)   # Internal padding
+                                        
+                                        # <add>
+                                        add (adventure.editor_icons + "/editor-new-point.png"):
+                                            fit "contain"
+                                            xalign 0.5
+                                            yalign 0.5
+                                        # </add>
+                                    # </button>
+                                    # <button>
+                                    button:
+                                        action Function(adventure_delete_point)
+                                        tooltip "Delete This Point"
+                                        background Solid("#cccccc")
+                                        hover_background Solid("#ffffff")
+                                        xysize (guiscale(24), guiscale(24))  # Size of the button
+                                        padding (0, 0)   # Internal padding
+                                        
+                                        # <add>
+                                        add (adventure.editor_icons + "/editor-delete-point.png"):
+                                            fit "contain"
+                                            xalign 0.5
+                                            yalign 0.5
+                                        # </add>
+                                    # </button>
+                                    # <button>
+                                    button:
+                                        action NullAction()
+                                        background Solid("#666666")  # Transparent
+                                        ysize guiscale(24)+1
+                                        xsize (adventure.editor_width - (guiscale(24) + guiscale(1))*3) - guiscale(1)
+                                    # </button>
+                                    # <button>
+                                    button:
+                                        action Function(delete_interactable)
+                                        tooltip "Delete This Polygon"
+                                        background Solid("#cccccc")
+                                        hover_background Solid("#ffffff")
+                                        xysize (guiscale(24), guiscale(24))
+                                        padding (0, 0)
+                                        
+                                        # <add>
+                                        add (adventure.editor_icons + "/editor-delete-polygon.png"):
+                                            fit "contain"
+                                            xalign 0.5
+                                            yalign 0.5
+                                        # </add>
+                                    # </button>
+                                # </hbox>
+                            # </if editorTool ADVENTURE_EDITOR_TOOL_EDIT>
+                        # </if polygon>
+                        # <if>
+                        if (
+                            (get_interactable_type() == "icon" and adventure.editorTool != ADVENTURE_EDITOR_TOOL_PLAY)
+                            or
+                            (get_interactable_type() == "polygon" and adventure.editorTool == ADVENTURE_EDITOR_TOOL_SELECT)
+                        ):
+                            $ vtype = "Icons" if get_interactable_type() == "icon" else "Verb"
+
                             # <hbox>
-                            # Tool icons section - horizontal layout
                             hbox:
                                 spacing guiscale(2)  # Space between icons
                                 xpos guiscale(2)    # Position from left edge
                                 ypos guiscale(2)    # Position from top edge
+                                
+                                # TOOL SEQUENCE
+                                
                                 # <button>
                                 button:
-                                    action Function(set_pointmode)
-                                    tooltip "New Point After"
-                                    background (Solid("#ff3333") if adventure.pointMode == ADVENTURE_EDITOR_POINT_ADD else Solid("#cccccc"))
-                                    hover_background (Solid("#ffcc33") if adventure.pointMode == ADVENTURE_EDITOR_POINT_ADD else Solid("#ffffff"))
-                                    xysize (guiscale(24), guiscale(24))  # Size of the button
-                                    padding (0, 0)   # Internal padding
-                                    
+                                    action Function(toggle_ex_icon)
+                                    background Solid("#333333")
+                                    hover_background Solid("#999999")
+                                    xysize (guiscale(24), guiscale(24))
+                                    padding (0, 0)
                                     # <add>
-                                    add (adventure.editor_icons + "/editor-new-point.png"):
+                                    add (adventure.editor_icons + "/editor-" + ("un" if adventure_field_value("ex") == "" else "") + "checked.png"):
                                         fit "contain"
                                         xalign 0.5
                                         yalign 0.5
                                     # </add>
                                 # </button>
+
                                 # <button>
                                 button:
-                                    action Function(adventure_delete_point)
-                                    tooltip "Delete This Point"
-                                    background Solid("#cccccc")
-                                    hover_background Solid("#ffffff")
-                                    xysize (guiscale(24), guiscale(24))  # Size of the button
-                                    padding (0, 0)   # Internal padding
-                                    
+                                    action Function(toggle_say_icon)
+                                    background Solid("#333333")
+                                    hover_background Solid("#999999")
+                                    xysize (guiscale(24), guiscale(24))
+                                    padding (0, 0)
                                     # <add>
-                                    add (adventure.editor_icons + "/editor-delete-point.png"):
+                                    add (adventure.editor_icons + "/editor-" + ("un" if adventure_field_value("say") == "" else "") + "checked.png"):
                                         fit "contain"
                                         xalign 0.5
                                         yalign 0.5
                                     # </add>
                                 # </button>
+
+                                # <button>
+                                button:
+                                    action Function(toggle_op_icon)
+                                    background Solid("#333333")
+                                    hover_background Solid("#999999")
+                                    xysize (guiscale(24), guiscale(24))
+                                    padding (0, 0)
+                                    # <add>
+                                    add (adventure.editor_icons + "/editor-" + ("un" if adventure_field_value("op") == "" else "") + "checked.png"):
+                                        fit "contain"
+                                        xalign 0.5
+                                        yalign 0.5
+                                    # </add>
+                                # </button>
+
+                                # <button>
+                                button:
+                                    action Function(toggle_go_icon)
+                                    background Solid("#333333")
+                                    hover_background Solid("#999999")
+                                    xysize (guiscale(24), guiscale(24))
+                                    padding (0, 0)
+                                    # <add>
+                                    add (adventure.editor_icons + "/editor-" + ("un" if adventure_field_value("go") == "" else "") + "checked.png"):
+                                        fit "contain"
+                                        xalign 0.5
+                                        yalign 0.5
+                                    # </add>
+                                # </button>
+
                                 # <button>
                                 button:
                                     action NullAction()
-                                    background Solid("#666666")  # Transparent
-                                    ysize guiscale(24)+1
-                                    xsize (adventure.editor_width - (guiscale(24) + guiscale(1))*3) - guiscale(1)
-                                # </button>
-                                # <button>
-                                button:
-                                    action Function(delete_interactable)
-                                    tooltip "Delete This Polygon"
-                                    background Solid("#cccccc")
-                                    hover_background Solid("#ffffff")
+                                    background Solid("#333333")
+                                    hover_background Solid("#333333")
                                     xysize (guiscale(24), guiscale(24))
                                     padding (0, 0)
-                                    
                                     # <add>
-                                    add (adventure.editor_icons + "/editor-delete-polygon.png"):
+                                    add (adventure.editor_icons + "/editor-" + ("un" if adventure_field_value("condition") == "" else "") + "checked.png"):
                                         fit "contain"
                                         xalign 0.5
                                         yalign 0.5
                                     # </add>
                                 # </button>
                             # </hbox>
-                        # </if editorTool ADVENTURE_EDITOR_TOOL_EDIT>
-                    # </if polygon>
-                    # <if>
-                    if (
-                        (get_interactable_type() == "icon" and adventure.editorTool != ADVENTURE_EDITOR_TOOL_PLAY)
-                        or
-                        (get_interactable_type() == "polygon" and adventure.editorTool == ADVENTURE_EDITOR_TOOL_SELECT)
-                    ):
-                        $ vtype = "Icons" if get_interactable_type() == "icon" else "Verb"
 
-                        # <hbox>
-                        hbox:
-                            spacing guiscale(2)  # Space between icons
-                            xpos guiscale(2)    # Position from left edge
-                            ypos guiscale(2)    # Position from top edge
-                            
-                            # TOOL SEQUENCE
-                            
-                            # <button>
-                            button:
-                                action Function(toggle_ex_icon)
-                                background Solid("#333333")
-                                hover_background Solid("#999999")
-                                xysize (guiscale(24), guiscale(24))
-                                padding (0, 0)
-                                # <add>
-                                add (adventure.editor_icons + "/editor-" + ("un" if adventure_field_value("ex") == "" else "") + "checked.png"):
-                                    fit "contain"
-                                    xalign 0.5
-                                    yalign 0.5
-                                # </add>
-                            # </button>
+                            # <hbox>
+                            hbox:
+                                spacing guiscale(2)  # Space between icons
+                                xpos guiscale(2)    # Position from left edge
+                                ypos guiscale(2)    # Position from top edge
+                                
+                                # TOOL SEQUENCE
 
-                            # <button>
-                            button:
-                                action Function(toggle_say_icon)
-                                background Solid("#333333")
-                                hover_background Solid("#999999")
-                                xysize (guiscale(24), guiscale(24))
-                                padding (0, 0)
-                                # <add>
-                                add (adventure.editor_icons + "/editor-" + ("un" if adventure_field_value("say") == "" else "") + "checked.png"):
-                                    fit "contain"
-                                    xalign 0.5
-                                    yalign 0.5
-                                # </add>
-                            # </button>
-
-                            # <button>
-                            button:
-                                action Function(toggle_op_icon)
-                                background Solid("#333333")
-                                hover_background Solid("#999999")
-                                xysize (guiscale(24), guiscale(24))
-                                padding (0, 0)
-                                # <add>
-                                add (adventure.editor_icons + "/editor-" + ("un" if adventure_field_value("op") == "" else "") + "checked.png"):
-                                    fit "contain"
-                                    xalign 0.5
-                                    yalign 0.5
-                                # </add>
-                            # </button>
-
-                            # <button>
-                            button:
-                                action Function(toggle_go_icon)
-                                background Solid("#333333")
-                                hover_background Solid("#999999")
-                                xysize (guiscale(24), guiscale(24))
-                                padding (0, 0)
-                                # <add>
-                                add (adventure.editor_icons + "/editor-" + ("un" if adventure_field_value("go") == "" else "") + "checked.png"):
-                                    fit "contain"
-                                    xalign 0.5
-                                    yalign 0.5
-                                # </add>
-                            # </button>
-
-                            # <button>
-                            button:
-                                action NullAction()
-                                background Solid("#333333")
-                                hover_background Solid("#333333")
-                                xysize (guiscale(24), guiscale(24))
-                                padding (0, 0)
-                                # <add>
-                                add (adventure.editor_icons + "/editor-" + ("un" if adventure_field_value("condition") == "" else "") + "checked.png"):
-                                    fit "contain"
-                                    xalign 0.5
-                                    yalign 0.5
-                                # </add>
-                            # </button>
-                        # </hbox>
-
-                        # <hbox>
-                        hbox:
-                            spacing guiscale(2)  # Space between icons
-                            xpos guiscale(2)    # Position from left edge
-                            ypos guiscale(2)    # Position from top edge
-                            
-                            # TOOL SEQUENCE
-
-                            # <button>
-                            button:
-                                action Function(change_ex_icon)
-                                tooltip ("Examine Tool " + vtype)
-                                background (Solid("#ccffee") if adventure.editorLayer == ADVENTURE_EDITOR_LAYER_EX else Solid("#cccccc"))
-                                hover_background Solid("#ffffff")
-                                xysize (guiscale(24), guiscale(24))
-                                padding (0, 0)
-                                # <add>
-                                add (adventure.editor_icons + "/editor-mode-ex.png"):
-                                    fit "contain"
-                                    xalign 0.5
-                                    yalign 0.5
-                                # </add>
-                            # </button>
-
-                            # <button>
-                            button:
-                                action Function(change_say_icon)
-                                tooltip ("Say Tool " + vtype)
-                                background (Solid("#ccffee") if adventure.editorLayer == ADVENTURE_EDITOR_LAYER_SAY else Solid("#cccccc"))
-                                hover_background Solid("#ffffff")
-                                xysize (guiscale(24), guiscale(24))
-                                padding (0, 0)
-                                # <add>
-                                add (adventure.editor_icons + "/editor-mode-say.png"):
-                                    fit "contain"
-                                    xalign 0.5
-                                    yalign 0.5
-                                # </add>
-                            # </button>
-
-                            # <button>
-                            button:
-                                action Function(change_op_icon)
-                                tooltip ("Operate Tool " + vtype)
-                                background (Solid("#ccffee") if adventure.editorLayer == ADVENTURE_EDITOR_LAYER_OP else Solid("#cccccc"))
-                                hover_background Solid("#ffffff")
-                                xysize (guiscale(24), guiscale(24))
-                                padding (0, 0)
-                                # <add>
-                                add (adventure.editor_icons + "/editor-mode-op.png"):
-                                    fit "contain"
-                                    xalign 0.5
-                                    yalign 0.5
-                                # </add>
-                            # </button>
-
-                            # <button>
-                            button:
-                                action Function(change_go_icon)
-                                tooltip ("Go Tool " + vtype)
-                                background (Solid("#ccffee") if adventure.editorLayer == ADVENTURE_EDITOR_LAYER_GO else Solid("#cccccc"))
-                                hover_background Solid("#ffffff")
-                                xysize (guiscale(24), guiscale(24))
-                                padding (0, 0)
-                                # <add>
-                                add (adventure.editor_icons + "/editor-mode-go.png"):
-                                    fit "contain"
-                                    xalign 0.5
-                                    yalign 0.5
-                                # </add>
-                            # </button>
-
-                            # <if>
-                            if adventure.editorTool == ADVENTURE_EDITOR_TOOL_EDIT:
                                 # <button>
                                 button:
-                                    action Function(delete_interactable)
-                                    tooltip "Delete This Icon"
-                                    background Solid("#cccccc")
+                                    action Function(change_ex_icon)
+                                    tooltip ("Examine Tool " + vtype)
+                                    background (Solid("#ccffee") if adventure.editorLayer == ADVENTURE_EDITOR_LAYER_EX else Solid("#cccccc"))
                                     hover_background Solid("#ffffff")
                                     xysize (guiscale(24), guiscale(24))
                                     padding (0, 0)
                                     # <add>
-                                    add (adventure.editor_icons + "/editor-delete-icon.png"):
+                                    add (adventure.editor_icons + "/editor-mode-ex.png"):
                                         fit "contain"
                                         xalign 0.5
                                         yalign 0.5
                                     # </add>
+                                # </button>
+
+                                # <button>
+                                button:
+                                    action Function(change_say_icon)
+                                    tooltip ("Say Tool " + vtype)
+                                    background (Solid("#ccffee") if adventure.editorLayer == ADVENTURE_EDITOR_LAYER_SAY else Solid("#cccccc"))
+                                    hover_background Solid("#ffffff")
+                                    xysize (guiscale(24), guiscale(24))
+                                    padding (0, 0)
+                                    # <add>
+                                    add (adventure.editor_icons + "/editor-mode-say.png"):
+                                        fit "contain"
+                                        xalign 0.5
+                                        yalign 0.5
+                                    # </add>
+                                # </button>
+
+                                # <button>
+                                button:
+                                    action Function(change_op_icon)
+                                    tooltip ("Operate Tool " + vtype)
+                                    background (Solid("#ccffee") if adventure.editorLayer == ADVENTURE_EDITOR_LAYER_OP else Solid("#cccccc"))
+                                    hover_background Solid("#ffffff")
+                                    xysize (guiscale(24), guiscale(24))
+                                    padding (0, 0)
+                                    # <add>
+                                    add (adventure.editor_icons + "/editor-mode-op.png"):
+                                        fit "contain"
+                                        xalign 0.5
+                                        yalign 0.5
+                                    # </add>
+                                # </button>
+
+                                # <button>
+                                button:
+                                    action Function(change_go_icon)
+                                    tooltip ("Go Tool " + vtype)
+                                    background (Solid("#ccffee") if adventure.editorLayer == ADVENTURE_EDITOR_LAYER_GO else Solid("#cccccc"))
+                                    hover_background Solid("#ffffff")
+                                    xysize (guiscale(24), guiscale(24))
+                                    padding (0, 0)
+                                    # <add>
+                                    add (adventure.editor_icons + "/editor-mode-go.png"):
+                                        fit "contain"
+                                        xalign 0.5
+                                        yalign 0.5
+                                    # </add>
+                                # </button>
+
+                                # <if>
+                                if adventure.editorTool == ADVENTURE_EDITOR_TOOL_EDIT:
+                                    # <button>
+                                    button:
+                                        action Function(delete_interactable)
+                                        tooltip "Delete This Icon"
+                                        background Solid("#cccccc")
+                                        hover_background Solid("#ffffff")
+                                        xysize (guiscale(24), guiscale(24))
+                                        padding (0, 0)
+                                        # <add>
+                                        add (adventure.editor_icons + "/editor-delete-icon.png"):
+                                            fit "contain"
+                                            xalign 0.5
+                                            yalign 0.5
+                                        # </add>
+                                    # </button>
+                                else:
+                                    # <button>
+                                    button:
+                                        action Function(change_condition)
+                                        tooltip ("Condition")
+                                        background (Solid("#ccffee") if adventure.editorLayer == ADVENTURE_EDITOR_LAYER_COND else Solid("#cccccc"))
+                                        hover_background Solid("#ffffff")
+                                        xysize (guiscale(24), guiscale(24))
+                                        padding (0, 0)
+                                        # <add>
+                                        add (adventure.editor_icons + "/editor-mode-condition.png"):
+                                            fit "contain"
+                                            xalign 0.5
+                                            yalign 0.5
+                                        # </add>
+                                    # </button>
+                                # </if>
+                            # </hbox>
+
+                            # <button>
+                            button:
+                                ypos 4
+                                ysize 8
+                                xsize (adventure.editor_width)
+                            # </button>
+
+                            # <if>
+                            if adventure.editorTool == ADVENTURE_EDITOR_TOOL_SELECT and ((vtype == "Verb") or
+                            (vtype == "Icons" and adventure.editorLayer == ADVENTURE_EDITOR_LAYER_COND)):
+                                # <button>
+                                button:
+                                    background adventure_create_gradient(adventure.editor_width + guiscale(6), adventure.guiscale * 20, "#330000", "#660000", "vertical")
+                                    hover_background adventure_create_gradient(adventure.editor_width + guiscale(6), adventure.guiscale * 20, "#660000", "#990000", "vertical")
+                                    action Function(get_interactable_verb)
+                                    tooltip ("Set Condition" if adventure.editorLayer == ADVENTURE_EDITOR_LAYER_COND else "Set Verb")
+                                    xfill True
+                                    ysize guiscale(20)
+
+                                    $ cur_verb = adventure_escape_renpy(adventure.room[adventure.interactableId][get_edit_tool_mode()])
+                                    text cur_verb size (adventure.guiscale * 12) bold False color "#FFFFFF" xpos ((adventure.editor_width // 2) - guiscale(2)) xanchor 0.5 ypos 0
                                 # </button>
                             else:
+                                # <if>
+                                if adventure.editorTool in [ADVENTURE_EDITOR_TOOL_SELECT, ADVENTURE_EDITOR_TOOL_EDIT] and vtype == "Icons" and adventure.editorLayer != ADVENTURE_EDITOR_LAYER_COND:
+                                    python:
+                                        icon_browse = True
+                                        base_list = { "none": ("verb-none.png", "none") }
+                                        base_list.update(adventure.verb_icons[get_edit_tool_mode()])
+                                        chunked_list = adventure_chunk_dict(base_list, 3)
+                                        sel_value = adventure_field_value(get_edit_tool_mode())
+                                        sel_verb = adventure.room[adventure.interactableId][get_edit_tool_mode()]
+                                        # <if>
+                                        if sel_value == "":
+                                            sel_value = "none"
+                                        # </if>
+                                    # <for>
+                                    for minilist in chunked_list:
+                                        # <hbox>
+                                        hbox:
+                                            spacing guiscale(3)  # Space between icons
+                                            xpos guiscale(3)    # Position from left edge
+                                            ypos 0    # Position from top edge
+                                            ysize guiscale(43)
+                                            # <for>
+                                            for iconname in minilist:
+                                                # <python>
+                                                python:
+                                                    # <try>
+                                                    try:
+                                                        verb = base_list[iconname][1]
+                                                        this_selected = sel_value == iconname
+                                                    except:
+                                                        this_selected = False
+                                                    # </try>
+                                                # </python
+                                                # <button>
+                                                button:
+                                                    action Function(adventure_set_verb, get_edit_tool_mode(), iconname if iconname != "none" else "")
+                                                    tooltip (verb.replace(";", " / "))
+                                                    background (Solid("#ccffee") if this_selected else Solid("#666666"))
+                                                    hover_background (Solid("#ccff99") if this_selected else Solid("#999999"))
+                                                    xysize (guiscale(40), guiscale(40))
+                                                    padding (0, 0)
+                                                    # <add>
+                                                    add (adventure_icon(base_list[iconname][0])):
+                                                        fit "contain"
+                                                        xalign 0.5
+                                                        yalign 0.5
+                                                    # </add>
+                                                # </button>
+                                            # </for>
+                                        # </hbox>
+                                    # </for chunked list>
+                                # </if>
+
                                 # <button>
                                 button:
-                                    action Function(change_condition)
-                                    tooltip ("Condition")
-                                    background (Solid("#ccffee") if adventure.editorLayer == ADVENTURE_EDITOR_LAYER_COND else Solid("#cccccc"))
-                                    hover_background Solid("#ffffff")
-                                    xysize (guiscale(24), guiscale(24))
-                                    padding (0, 0)
-                                    # <add>
-                                    add (adventure.editor_icons + "/editor-mode-condition.png"):
-                                        fit "contain"
-                                        xalign 0.5
-                                        yalign 0.5
-                                    # </add>
+                                    action NullAction()
+                                    background None  # Transparent
+                                    xfill True
+                                    ysize 20
                                 # </button>
                             # </if>
-                        # </hbox>
 
+
+                        # </if icon>
                         # <button>
                         button:
-                            ypos 4
-                            ysize 8
-                            xsize (adventure.editor_width)
+                            action NullAction()
+                            background None  # Transparent
+                            xfill True
+                            ysize 25
                         # </button>
+                        # <button>
+                        button:
+                            action NullAction()
+                            background None  # Transparent
+                            xfill True
+                            yfill True
+                        # </button>
+                    # </vbox>
+                # </frame>
+            # </vbox>
+        # </frame>
 
-                        # <if>
-                        if adventure.editorTool == ADVENTURE_EDITOR_TOOL_SELECT and ((vtype == "Verb") or
-                        (vtype == "Icons" and adventure.editorLayer == ADVENTURE_EDITOR_LAYER_COND)):
-                            # <button>
-                            button:
-                                background adventure_create_gradient(adventure.editor_width + guiscale(6), adventure.guiscale * 20, "#330000", "#660000", "vertical")
-                                hover_background adventure_create_gradient(adventure.editor_width + guiscale(6), adventure.guiscale * 20, "#660000", "#990000", "vertical")
-                                action Function(get_interactable_verb)
-                                tooltip ("Set Condition" if adventure.editorLayer == ADVENTURE_EDITOR_LAYER_COND else "Set Verb")
-                                xfill True
-                                ysize guiscale(20)
+        $ interactable_type = get_interactable_type()
 
-                                $ cur_verb = adventure_escape_renpy(adventure.room[adventure.interactableId][get_edit_tool_mode()])
-                                text cur_verb size (adventure.guiscale * 12) bold False color "#FFFFFF" xpos ((adventure.editor_width // 2) - guiscale(2)) xanchor 0.5 ypos 0
-                            # </button>
-                        else:
-                            # <if>
-                            if adventure.editorTool in [ADVENTURE_EDITOR_TOOL_SELECT, ADVENTURE_EDITOR_TOOL_EDIT] and vtype == "Icons" and adventure.editorLayer != ADVENTURE_EDITOR_LAYER_COND:
-                                python:
-                                    icon_browse = True
-                                    base_list = { "none": ("verb-none.png", "none") }
-                                    base_list.update(adventure.verb_icons[get_edit_tool_mode()])
-                                    chunked_list = adventure_chunk_dict(base_list, 3)
-                                    sel_value = adventure_field_value(get_edit_tool_mode())
-                                    sel_verb = adventure.room[adventure.interactableId][get_edit_tool_mode()]
-                                    # <if>
-                                    if sel_value == "":
-                                        sel_value = "none"
-                                    # </if>
-                                # <for>
-                                for minilist in chunked_list:
-                                    # <hbox>
-                                    hbox:
-                                        spacing guiscale(3)  # Space between icons
-                                        xpos guiscale(3)    # Position from left edge
-                                        ypos 0    # Position from top edge
-                                        ysize guiscale(43)
-                                        # <for>
-                                        for iconname in minilist:
-                                            # <python>
-                                            python:
-                                                # <try>
-                                                try:
-                                                    verb = base_list[iconname][1]
-                                                    this_selected = sel_value == iconname
-                                                except:
-                                                    this_selected = False
-                                                # </try>
-                                            # </python
-                                            # <button>
-                                            button:
-                                                action Function(adventure_set_verb, get_edit_tool_mode(), iconname if iconname != "none" else "")
-                                                tooltip (verb.replace(";", " / "))
-                                                background (Solid("#ccffee") if this_selected else Solid("#666666"))
-                                                hover_background (Solid("#ccff99") if this_selected else Solid("#999999"))
-                                                xysize (guiscale(40), guiscale(40))
-                                                padding (0, 0)
-                                                # <add>
-                                                add (adventure.images_base + "/" + adventure.iconset + "/" + base_list[iconname][0]):
-                                                    fit "contain"
-                                                    xalign 0.5
-                                                    yalign 0.5
-                                                # </add>
-                                            # </button>
-                                        # </for>
-                                    # </hbox>
-                                # </for chunked list>
-                            # </if>
-
-                            # <button>
-                            button:
-                                action NullAction()
-                                background None  # Transparent
-                                xfill True
-                                ysize 20
-                            # </button>
-                        # </if>
-
-
-                    # </if icon>
-                    # <button>
-                    button:
-                        action NullAction()
-                        background None  # Transparent
-                        xfill True
-                        ysize 25
-                    # </button>
-                    # <button>
-                    button:
-                        action NullAction()
-                        background None  # Transparent
-                        xfill True
-                        yfill True
-                    # </button>
-                # </vbox>
-            # </frame>
-        # </vbox>
-    # </frame>
-
-    $ interactable_type = get_interactable_type()
-
-    # <if>
-    if adventure.modalFreeze == 0 and adventure.editorTool != ADVENTURE_EDITOR_TOOL_PLAY:
-        # <textbutton>
-        textbutton "◂◂":
-            action Function(priorInteractable)
-            tooltip "Select Prior Interactable"
-            text_size (adventure.guiscale * 12)
-            xpos editor_x
-            text_color "#999999"
-            text_hover_color "#99ffee"
-            background Solid("#000000")
-            hover_background Solid("#333333")
-            ypos (adventure.editor_top + guiscale(55))
-        # </textbutton>
-        # <textbutton>
-        textbutton "▸▸":
-            action Function(nextInteractable)
-            tooltip "Select Next Interactable"
-            text_size (adventure.guiscale * 12)
-            xpos (editor_x + adventure.editor_width)
-            xanchor 1.0
-            text_color "#999999"
-            text_hover_color "#99ffee"
-            background Solid("#000000")
-            hover_background Solid("#333333")
-            ypos (adventure.editor_top + guiscale(55))
-        # </textbutton>
         # <if>
-        if adventure.editorTool == ADVENTURE_EDITOR_TOOL_EDIT and interactable_type == "polygon":
+        if adventure.modalFreeze == 0 and adventure.editorTool != ADVENTURE_EDITOR_TOOL_PLAY:
             # <textbutton>
             textbutton "◂◂":
-                action Function(adventure_prior_point)
-                tooltip "Select Prior Point"
+                action Function(priorInteractable)
+                tooltip "Select Prior Interactable"
                 text_size (adventure.guiscale * 12)
                 xpos editor_x
                 text_color "#999999"
                 text_hover_color "#99ffee"
                 background Solid("#000000")
                 hover_background Solid("#333333")
-                ypos (adventure.editor_top + guiscale(164))
+                ypos (adventure.editor_top + guiscale(55))
             # </textbutton>
             # <textbutton>
             textbutton "▸▸":
-                action Function(adventure_next_point)
-                tooltip "Select Next Point"
+                action Function(nextInteractable)
+                tooltip "Select Next Interactable"
                 text_size (adventure.guiscale * 12)
                 xpos (editor_x + adventure.editor_width)
                 xanchor 1.0
@@ -1773,57 +1845,98 @@ screen adventure_editor():
                 text_hover_color "#99ffee"
                 background Solid("#000000")
                 hover_background Solid("#333333")
-                ypos (adventure.editor_top + guiscale(164))
+                ypos (adventure.editor_top + guiscale(55))
             # </textbutton>
-        # </if point editor>
+            # <if>
+            if adventure.editorTool == ADVENTURE_EDITOR_TOOL_EDIT and interactable_type == "polygon":
+                # <textbutton>
+                textbutton "◂◂":
+                    action Function(adventure_prior_point)
+                    tooltip "Select Prior Point"
+                    text_size (adventure.guiscale * 12)
+                    xpos editor_x
+                    text_color "#999999"
+                    text_hover_color "#99ffee"
+                    background Solid("#000000")
+                    hover_background Solid("#333333")
+                    ypos (adventure.editor_top + guiscale(164))
+                # </textbutton>
+                # <textbutton>
+                textbutton "▸▸":
+                    action Function(adventure_next_point)
+                    tooltip "Select Next Point"
+                    text_size (adventure.guiscale * 12)
+                    xpos (editor_x + adventure.editor_width)
+                    xanchor 1.0
+                    text_color "#999999"
+                    text_hover_color "#99ffee"
+                    background Solid("#000000")
+                    hover_background Solid("#333333")
+                    ypos (adventure.editor_top + guiscale(164))
+                # </textbutton>
+            # </if point editor>
 
-    # </if not modalFreeze>
+        # </if not modalFreeze>
 
-    # <if>
-    if adventure.editorTool != ADVENTURE_EDITOR_TOOL_PLAY:
-        text ("#" + str(adventure.interactableId + 1) + " (" + interactable_type_text(interactable_type) + ")" ) size (adventure.guiscale * 15) xpos (editor_x + adventure.editor_width // 2) xanchor 0.5 ypos (adventure.editor_top + guiscale(58)) color "#00cc66"
-    # </if>
+        # <if>
+        if adventure.editorTool != ADVENTURE_EDITOR_TOOL_PLAY:
+            text ("#" + str(adventure.interactableId + 1) + " (" + interactable_type_text(interactable_type) + ")" ) size (adventure.guiscale * 15) xpos (editor_x + adventure.editor_width // 2) xanchor 0.5 ypos (adventure.editor_top + guiscale(58)) color "#00cc66"
+            $ mode_text = adventure_get_mode_text(adventure.editorTool)
+            text mode_text size (adventure.guiscale * 12) xpos (editor_x + adventure.editor_width // 2) xanchor 0.5 ypos (adventure.editor_top + guiscale(110)) color "#999999"
+        # </if>
 
-    $ mode_text = adventure_get_mode_text(adventure.editorTool)
-    text mode_text size (adventure.guiscale * 12) xpos (editor_x + adventure.editor_width // 2) xanchor 0.5 ypos (adventure.editor_top + guiscale(110)) color "#999999"
+        # <if>
+        if adventure.editorTool == ADVENTURE_EDITOR_TOOL_EDIT and interactable_type == "polygon":
+            text ("Pt. " + str(adventure.pointId + 1)) size (adventure.guiscale * 15) xpos (editor_x + adventure.editor_width // 2) xanchor 0.5 ypos (adventure.editor_top + guiscale(168)) color "#00cc66"
+        # </if>
 
-    # <if>
-    if adventure.editorTool == ADVENTURE_EDITOR_TOOL_EDIT and interactable_type == "polygon":
-        text ("Pt. " + str(adventure.pointId + 1)) size (adventure.guiscale * 15) xpos (editor_x + adventure.editor_width // 2) xanchor 0.5 ypos (adventure.editor_top + guiscale(168)) color "#00cc66"
-    # </if>
+        # <if>
+        if not icon_browse:
+            # <text>
+            text "Room:":
+                ypos (adventure.editor_top + adventure.editor_height - guiscale(70))
+                xpos (editor_x + adventure.editor_width // 2)
+                xanchor 0.5
+                yanchor 0
+                bold True
+                size (adventure.guiscale * 14)
+            # </text>
+            # <text>
+            text "[adventure.roomName]":
+                ypos (adventure.editor_top + adventure.editor_height - guiscale(70 - 18))
+                xpos (editor_x + adventure.editor_width // 2)
+                xanchor 0.5
+                yanchor 0
+                size (adventure.guiscale * 14)
+            # </text>
+            # <button>
+        # </if>
 
-    # <if>
-    if not icon_browse:
-        # <text>
-        text "Room:":
-            ypos (adventure.editor_top + adventure.editor_height - guiscale(70))
+        # <if>
+        if adventure.editorTool == ADVENTURE_EDITOR_TOOL_PLAY:
+            # <textbutton>
+            textbutton "Hide Editor":
+                action Function(adventure_hide_editor)
+                tooltip "Temporarily Hide the Editor GUI"
+                text_size (adventure.guiscale * 12)
+                xpos (editor_x + adventure.editor_width // 2)
+                xanchor 0.5
+                yanchor 1
+                ypos int(adventure.editor_top + adventure.editor_height - guiscale(95))
+            # </textbutton>
+        # </if>
+
+        # <textbutton>
+        textbutton "Save Changes":
+            action Function(export_room_data_readable)
+            tooltip "Permanently Save Room Data"
+            text_size (adventure.guiscale * 12)
             xpos (editor_x + adventure.editor_width // 2)
             xanchor 0.5
-            yanchor 0
-            bold True
-            size (adventure.guiscale * 14)
-        # </text>
-        # <text>
-        text "[adventure.roomName]":
-            ypos (adventure.editor_top + adventure.editor_height - guiscale(70 - 18))
-            xpos (editor_x + adventure.editor_width // 2)
-            xanchor 0.5
-            yanchor 0
-            size (adventure.guiscale * 14)
-        # </text>
-        # <button>
-    # </if>
-
-    # <textbutton>
-    textbutton "Save Changes":
-        action Function(export_room_data_readable)
-        tooltip "Permanently Save Room Data"
-        text_size (adventure.guiscale * 12)
-        xpos (editor_x + adventure.editor_width // 2)
-        xanchor 0.5
-        yanchor 1
-        ypos int(adventure.editor_top + adventure.editor_height - guiscale(25))
-    # </textbutton> 
+            yanchor 1
+            ypos int(adventure.editor_top + adventure.editor_height - guiscale(25))
+        # </textbutton>
+    # </if not_hidden>
 # </screen adventure_editor>
 
 

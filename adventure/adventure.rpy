@@ -3,7 +3,7 @@
 **
 **   adventure.rpy - Adventure Module (for Ren'Py)
 **
-**   Version 0.2 revision 7
+**   Version 0.2 revision 8
 **
 **************************************************************************
 This module is released under the MIT License:
@@ -34,7 +34,7 @@ DEALINGS IN THE SOFTWARE.
 
 define ADVENTURE_VERSION_MAJOR = 0
 define ADVENTURE_VERSION_MINOR = 2
-define ADVENTURE_VERSION_REVISION = 7
+define ADVENTURE_VERSION_REVISION = 8
 
 define ADVENTURE_UNSET = "unset"
 
@@ -68,10 +68,14 @@ init -10 python:
 
     # The following settings can also be overriden in your script's init
     # python section:
+    
+    #### DO NOT MODIFY THIS FILE ####
 
     adventure.do_logging = True
     adventure.first_person = False  # False = You, True = I
     adventure.narratorName = ""
+
+    #### DO NOT MODIFY THIS FILE ####
 
     adventure.tooltip_xpos = 0.5
     adventure.tooltip_ypos = 20
@@ -80,13 +84,17 @@ init -10 python:
     adventure.action_tip = True
     adventure.guiscale = 2
 
-    adventure.images_base = "adventure/images"
+    #### DO NOT MODIFY THIS FILE ####
+
+    adventure.images_base = "images"
     adventure.iconset = "free-icons"
     adventure.iconzoom = 0.1
     adventure.icon_padding = 5
 
+    #### DO NOT MODIFY THIS FILE ####
+
     adventure.toolbar_position = "bottom"
-    adventure.toolbar_icons_base = "adventure/images"
+    adventure.toolbar_icons_base = "images"
     adventure.toolbar_iconset = "free-icons"
     adventure.toolbar_iconzoom = 0.1
     adventure.toolbar_anchor = 0.5
@@ -99,6 +107,8 @@ init -10 python:
     adventure.toolbar_inventory_expand = True # one button per item? False = bag icon
     adventure.toolbar_draw_order_reversed = False
     
+    #### DO NOT MODIFY THIS FILE ####
+
     adventure.choice_position = "right"
     adventure.choice_frame = "adventure/images/choice-frame.png"
     adventure.choice_frame_hover = "adventure/images/choice-frame-hover.png"
@@ -107,6 +117,8 @@ init -10 python:
     adventure.choice_textcolor_hover = "#ffff00"
     adventure.choice_textcolor_selected = "#003333"
     
+    #### DO NOT MODIFY THIS FILE ####
+
     adventure.margins = {
        "adventure/images/choice-frame.png": {
            "left": 400, "top": 36, "right": 36, "bottom": 36
@@ -115,6 +127,8 @@ init -10 python:
            "left": 400, "top": 36, "right": 36, "bottom": 36
        },
     }
+
+    #### DO NOT MODIFY THIS FILE ####
 
     adventure.toolbar_hints = {
 
@@ -127,6 +141,8 @@ init -10 python:
         "auto": "Action",
     }
 
+    #### DO NOT MODIFY THIS FILE ####
+
     adventure.tool_icons = {
 
         # These are the image filename associated with each verb mode tool:
@@ -137,6 +153,8 @@ init -10 python:
         "say": "mode-talk.png",
         "auto": "mode-auto.png",
     }
+
+    #### DO NOT MODIFY THIS FILE ####
 
     adventure.verb_icons = {  # organized by tool mode
 
@@ -165,6 +183,8 @@ init -10 python:
         }
     }
 
+    #### DO NOT MODIFY THIS FILE ####
+
     adventure.verb_aliases = {
 
         # The parser will extract the fullest possible tag from the right
@@ -178,6 +198,8 @@ init -10 python:
         "op": "operate",
         "ex": "examine"
     }
+
+    #### DO NOT MODIFY THIS FILE ####
 
     adventure.tag_aliases = {
 
@@ -201,6 +223,8 @@ init -10 python:
         }
 
     }
+
+    #### DO NOT MODIFY THIS FILE ####
 
     adventure.tool_verbs = {
 
@@ -230,6 +254,8 @@ init -10 python:
              "*go", "*op", "*say", ".*ex"
          ]
     }
+
+    #### DO NOT MODIFY THIS FILE ####
 
     adventure.choice_positions = {
         "center": {
@@ -279,6 +305,8 @@ init -10 python:
         }
     }
     
+    #### DO NOT MODIFY THIS FILE ####
+
     # The following are used internally to track state and configuration:
 
     roomData = {}
@@ -318,10 +346,46 @@ init -10 python:
     adventure.last_hint = None
     adventure.gathering_hints = False
     adventure.actions = []
+    adventure.rexCache = {}
 
     build.classify('game/adventure/adventure-editor.rpy', None)
     build.classify('game/adventure/adventure-editor.rpyc', None)
     build.classify('game/adventure/images/editor-icons/**', None)
+
+    # <def>    
+    def adventure_cached_exists(filename):
+        # <if>
+        if not filename in adventure.rexCache:
+            adventure.rexCache[filename] = renpy.exists(filename)
+        # </if>
+        return adventure.rexCache[filename]
+    # </def>
+
+    # <def>
+    def adventure_icon(name):
+        iconset_mid = "/" + adventure.iconset + "/"
+        # <if>
+        if adventure_cached_exists(adventure.images_base + iconset_mid + name):
+            return adventure.images_base + iconset_mid + name
+        elif adventure_cached_exists("adventure/images" + iconset_mid + name):
+            return "adventure/images" + iconset_mid + name
+        else:
+            return "adventure/images/free-icons/name"
+        # </if>
+    # </def>
+
+    # <def>
+    def adventure_toolbar_icon(name):
+        iconset_mid = "/" + adventure.toolbar_iconset + "/"
+        # <if>
+        if adventure_cached_exists(adventure.toolbar_icons_base + iconset_mid + name):
+            return adventure.toolbar_icons_base + iconset_mid + name
+        elif adventure_cached_exists("adventure/images" + iconset_mid + name):
+            return "adventure/images" + iconset_mid + name
+        else:
+            return "adventure/images/free-icons/name"
+        # </if>
+    # </def>
 
     # <def>
     def adventure_get_relative_path(icon_file, base_path=None):
@@ -334,8 +398,6 @@ init -10 python:
     def adventure_custom_link(target):
         webbrowser.open(target)
     # </def>
-
-    #  config.hyperlink_handlers['advlink'] = adventure_custom_link
 
     # <def>
     def adventure_capitalize_first_letter(input_string):
@@ -1143,6 +1205,12 @@ init -10 python:
         # <def>
         def event(self, ev, x, y, st):
             import pygame
+            # <try>
+            try:
+                adventure_editor_event(ev, x, y, st)
+            except:
+                pass
+            # </try>
             need_res = False
             # <if>
             this_stamp = time.time()
@@ -1362,15 +1430,24 @@ init -10 python:
             # <for>
             for verb in adventure.verb_icons[tool]:
                 icon_name = adventure.images_base + "/" + adventure.iconset + "/" + adventure.verb_icons[tool][verb][0]
-                adventure.iconSizes[icon_name] = adventure_get_image_dimensions(icon_name)
+                real_icon_name = icon_name
+                if not adventure_cached_exists(icon_name):
+                    real_icon_name = "adventure/images/" + adventure.iconset + "/" + adventure.verb_icons[tool][verb][0]
+                adventure.iconSizes[real_icon_name] = adventure_get_image_dimensions(real_icon_name)
             # </for>
         # </for>
         icon_name = adventure.toolbar_icons_base + "/" + adventure.toolbar_iconset + "/toolbar-active.png"
-        adventure.iconSizes[icon_name] = adventure_get_image_dimensions(icon_name)
+        real_icon_name = icon_name
+        if not adventure_cached_exists(icon_name):
+            real_icon_name = "adventure/images/" + adventure.toolbar_iconset + "/toolbar-active.png"
+        adventure.iconSizes[real_icon_name] = adventure_get_image_dimensions(real_icon_name)
         icon_name = adventure.toolbar_icons_base + "/" + adventure.toolbar_iconset + "/toolbar-inactive.png"
-        adventure.iconSizes[icon_name] = adventure_get_image_dimensions(icon_name)
+        real_icon_name = icon_name
+        if not adventure_cached_exists(icon_name):
+            real_icon_name = "adventure/images/" + adventure.toolbar_iconset + "/toolbar-inactive.png"
+        adventure.iconSizes[real_icon_name] = adventure_get_image_dimensions(real_icon_name)
     # </def>
-
+    
     # <def>
     def adventure_init():
         # <if>
@@ -1379,13 +1456,6 @@ init -10 python:
             if adventure.do_logging:
                 gui.history_allow_tags.update({"b", "i"})
             # </lif>
-            # <try>
-            try:
-                store.roomData.update(room_definitions)
-            except:
-                print("No room data loaded")
-            # </try>
-
             author_message_1 = """
 This game is built using \"Adventure for Ren'Py\" by Jeffrey R. Day:
 A free (MIT Licensed) module to add point-and-click adventure game support to RenPy.
@@ -1395,6 +1465,12 @@ Please consider supporting development of the \"Adventure for Ren'Py\" module by
 https://ko-fi.com/jeffday
             """
             print(author_message_1)
+            # <try>
+            try:
+                store.roomData.update(room_definitions)
+            except:
+                print("\nWARNING: No room data loaded")
+            # </try>
             adventure_refresh_icon_dimensions()
             adventure.initialized = True
             # <if>
@@ -1757,6 +1833,8 @@ screen adventure_toolbar():
 
     python:
         tbiconbase = adventure.toolbar_icons_base + "/" + adventure.toolbar_iconset
+        if not adventure_cached_exists(tbiconbase + "/toolbar-inactive.png"):
+            tbiconbase = "adventure/images/" + adventure.toolbar_iconset
         if tbiconbase in adventure.plugin_metrics:
             metrics = adventure.plugin_metrics[tbiconbase]
         else:
@@ -1799,10 +1877,10 @@ screen adventure_toolbar():
         toolbar_top_pad = int(metrics["toolbar_top_padding"] * adventure.toolbar_iconzoom / 0.1)
         valid_icons = []
         icon_width = adventure.toolbar_iconzoom * adventure.iconSizes[
-                adventure.toolbar_icons_base + "/" + adventure.toolbar_iconset + "/toolbar-inactive.png"
+                adventure_toolbar_icon("toolbar-inactive.png")
             ][0]
         icon_height = adventure.toolbar_iconzoom * adventure.iconSizes[
-                adventure.toolbar_icons_base + "/" + adventure.toolbar_iconset + "/toolbar-inactive.png"
+                adventure_toolbar_icon("toolbar-inactive.png")
             ][1]
         icon_length = icon_height if vertical else icon_width
         icon_depth = icon_width if vertical else icon_height
@@ -1872,7 +1950,7 @@ screen adventure_toolbar():
 
     # <frame>
     frame:
-        background Transform(AdventureNineSliceFrame((adventure.toolbar_icons_base + "/" + adventure.toolbar_iconset + "/toolbar-bg.png"), bgzoom = adventure.toolbar_iconzoom), alpha=adventure.toolbar_bg_opacity)
+        background Transform(AdventureNineSliceFrame((adventure_toolbar_icon("toolbar-bg.png")), bgzoom = adventure.toolbar_iconzoom), alpha=adventure.toolbar_bg_opacity)
         xpos int(toolbar_x - 1)
         ypos int(toolbar_y)
         xsize int(toolbar_width)
@@ -1885,13 +1963,13 @@ screen adventure_toolbar():
         python:
             status = "active" if icon == adventure.active_tool else "inactive"
         # </python>
-        add (adventure.toolbar_icons_base + "/" + adventure.toolbar_iconset + "/toolbar-" + status + ".png"):
+        add (adventure_toolbar_icon("toolbar-" + status + ".png")):
             xpos int(this_x + metrics["toolbar_" + status + "_button_offset"][0] * adventure.toolbar_iconzoom / 0.1)
             ypos int(this_y + metrics["toolbar_" + status + "_button_offset"][1] * adventure.toolbar_iconzoom / 0.1)
             xanchor 1
             yanchor 1
             zoom adventure.toolbar_iconzoom
-        add (adventure.toolbar_icons_base + "/" + adventure.toolbar_iconset + "/" + adventure.tool_icons[icon]):
+        add (adventure_toolbar_icon(adventure.tool_icons[icon])):
             xpos int(this_x + metrics["toolbar_" + status + "_icon_offset"][0] * adventure.toolbar_iconzoom/0.1 + icon_width / 2)
             ypos int(this_y + metrics["toolbar_" + status + "_icon_offset"][1] * adventure.toolbar_iconzoom/0.1 + icon_height / 2)
             zoom adventure.toolbar_iconzoom
@@ -2023,7 +2101,7 @@ screen adventure_interaction():
                     total_width = 0
                     # <for>
                     for verbimage in reversed(icon_verb_images):
-                        this_width = adventure.iconSizes[adventure.images_base + "/" + adventure.iconset + "/" + verbimage][0] * adventure.iconzoom
+                        this_width = adventure.iconSizes[adventure_icon(verbimage)][0] * adventure.iconzoom
                         total_width += this_width if this_width != None else 20
                     # </for>
                     total_width += (len(icon_verb_images) - 1) * adventure.icon_padding
@@ -2036,8 +2114,10 @@ screen adventure_interaction():
                     $ this_id = icon_verb_ids[i]
                     # <if>
                     if this_active or adventure.debug_show_inactive:
+                        python:
+                            real_icon_name = adventure_icon(verbimage)
                         # <add>
-                        add (adventure.images_base + "/" + adventure.iconset + "/" + verbimage):
+                        add (real_icon_name):
                             xpos int(x + xoffs)
                             ypos y
                             xanchor 0
@@ -2048,7 +2128,7 @@ screen adventure_interaction():
                     # </if>
                     # <python>
                     python:
-                        this_size_raw = adventure.iconSizes[adventure.images_base + "/" + adventure.iconset + "/" + verbimage]
+                        this_size_raw = adventure.iconSizes[adventure_icon(verbimage)]
                         this_size = (
                             (this_size_raw[0] * adventure.iconzoom) if this_size_raw[0] != None else 20,
                             (this_size_raw[1] * adventure.iconzoom) if this_size_raw[1] != None else 20

@@ -143,6 +143,12 @@ MIT License - see [LICENSE](LICENSE) file for details.
 
 ## Changelog
 
+### 0.2.8
+- If a needed icon isn't found in a custom iconset location, Adventure
+  will now attempt to fall back to the default free-icons iconset within
+  the adventure folder.
+- Editor GUI can now be dragged by titlebar, and temporarily hidden.
+
 ### 0.2.7
 - Added iconset metrics
 - Editor GUI can be scaled with `adventure.guiscale = 2`

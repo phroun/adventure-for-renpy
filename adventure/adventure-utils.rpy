@@ -280,9 +280,6 @@ init python:
             base_surface = pygame.image.load(base_image_path)
             base_width, base_height = base_surface.get_size()
             
-            print("Input image: {}x{}".format(base_width, base_height))
-            print("Target size: {}x{}".format(target_width, target_height))
-            
             # Handle non-square input if target is square
             if target_width == target_height and base_width != base_height:
                 print("Warning: Input is not square ({}x{}). Will center crop to square.".format(base_width, base_height))
@@ -326,7 +323,7 @@ init python:
             
             # Scale to exact target size if not already handled above
             if base_surface.get_size() != (target_width, target_height) and not (target_width != target_height and base_width != base_height):
-                print("Scaling from {} to {}x{}".format(base_surface.get_size(), target_width, target_height))
+                # print("Scaling from {} to {}x{}".format(base_surface.get_size(), target_width, target_height))
                 base_surface = pygame.transform.smoothscale(base_surface, (target_width, target_height))
             
             # Convert to RGBA format
@@ -339,8 +336,6 @@ init python:
             
             # Save as PNG
             pygame.image.save(final_surface, output_png_path)
-            
-            print("Successfully created PNG: {}".format(output_png_path))
             return True
             
         except Exception as e:
