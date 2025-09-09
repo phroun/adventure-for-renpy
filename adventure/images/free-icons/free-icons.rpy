@@ -4,7 +4,9 @@
 init python:
     import os
     filename, line_number = renpy.get_filename_line()
-    relpath = adventure_get_relative_path(os.path.dirname(os.path.abspath('../' + filename)), renpy.config.gamedir)
+    relpath = os.path.dirname(filename)
+    if relpath.startswith("game/"):
+        relpath = relpath[5:]
 
     adventure.margins[relpath + "/toolbar-bg.png"] = {
        "left": 10, "top": 10, "right": 10, "bottom": 10
