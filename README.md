@@ -26,7 +26,7 @@ The presence of adventure-editor.rpy (not shipped  in a game build) enables the 
 
 ### Natural Language Matching
 
-```
+```rpy
 if player_chooses_to("speak to receptionist"):
     "Would you like to check in?"
 ```
