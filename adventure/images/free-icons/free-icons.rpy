@@ -8,8 +8,8 @@ init python:
     if relpath.startswith("game/"):
         relpath = relpath[5:]
 
-    adventure.margins[relpath + "/toolbar-bg.png"] = {
-       "left": 10, "top": 10, "right": 10, "bottom": 10
+    adventure.slice_metrics[relpath + "/toolbar-bg.png"] = {
+       "left": 10, "top": 10, "right": 10, "bottom": 10, "source_width": 170
     }
     adventure.plugin_metrics[relpath] = {
         "toolbar_top_padding": 5,

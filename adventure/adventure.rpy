@@ -68,11 +68,15 @@ init -10 python:
 
     # The following settings can also be overriden in your script's init
     # python section:
+
+    #### DO NOT MODIFY THIS FILE ####
+
+    adventure.guiscale = 2  # For the Editor GUI
     
     #### DO NOT MODIFY THIS FILE ####
 
     adventure.do_logging = True
-    adventure.first_person = False  # False = You, True = I
+    adventure.first_person = False  # False = You, True = I, None = Disabled
     adventure.narratorName = ""
 
     #### DO NOT MODIFY THIS FILE ####
@@ -82,7 +86,6 @@ init -10 python:
     adventure.tooltip_size = 18
     adventure.tooltip_bg_opacity = 0.5
     adventure.action_tip = True
-    adventure.guiscale = 2
 
     #### DO NOT MODIFY THIS FILE ####
 
@@ -119,12 +122,14 @@ init -10 python:
     
     #### DO NOT MODIFY THIS FILE ####
 
-    adventure.margins = {
+    adventure.slice_metrics = {
        "adventure/images/choice-frame.png": {
-           "left": 400, "top": 36, "right": 36, "bottom": 36
+           "left": 400, "top": 36, "right": 36, "bottom": 36,
+           "source_render_width": 640,
        },
        "adventure/images/choice-frame-hover.png": {
-           "left": 400, "top": 36, "right": 36, "bottom": 36
+           "left": 400, "top": 36, "right": 36, "bottom": 36,
+           "source_render_width": 640,
        },
     }
 
@@ -172,7 +177,7 @@ init -10 python:
         },
         "op": {
             "op": ("verb-hint.png", "*op"),
-            "hit": ("verb-hit.png", "hit"),
+            "hit": ("verb-hit.png", "hit;kick;fight;punch"),
             "eat": ("verb-eat.png", "eat"),
             "wait": ("verb-wait.png", "wait"),
             "taste": ("verb-taste.png", "taste;lick"),
@@ -192,9 +197,6 @@ init -10 python:
         # (left side of list below) in the remaining verb part to the
         # canonical form (right side) before performing verb matching:
         
-        "climb": "go",
-        "move": "go",
-        "walk": "go",
         "op": "operate",
         "ex": "examine"
     }
@@ -217,9 +219,8 @@ init -10 python:
         # tag list.
         
         "*": {
-          "Elevator": "Lift",
-          "Lift": "Elevator",
-          "armor": "armour"
+          "~armor": "~armour",
+          "~color": "~colour",
         }
 
     }
@@ -236,6 +237,9 @@ init -10 python:
              "enter", "go in", "go into",
              "exit", "go out", "go out of",
              "go across",
+             # "walk",
+             # "climb", "climb up", "climb down", "climb across", "climb over",
+             # "crawl", "crawl under", "crawl underneath", "crawl across", "crawl through",
          ],
          "ex": [
              "examine", "look", "read", "taste", "listen", "smell"
@@ -996,12 +1000,11 @@ init -10 python:
             
             self.child = renpy.displayable(child) if child else None
             self.image_file = image_file
-            self.bgzoom = bgzoom
             
             # Get margins from registry or use default
             # <if>
-            if image_file in adventure.margins:
-                margins = adventure.margins[image_file]
+            if image_file in adventure.slice_metrics:
+                margins = adventure.slice_metrics[image_file]
             else:
                 margins = {"top": 16, "left": 16, "right": 16, "bottom": 16 }
             # </if>
@@ -1013,7 +1016,17 @@ init -10 python:
             # Load base image and get original size
             self.base_image = Image(image_file)
             self.orig_width, self.orig_height = self.base_image.load().get_size()
+
+            rwidth = margins.get("source_render_width", None)
+            rheight = margins.get("source_render_height", None)
             
+            if rwidth is not None:
+                self.bgzoom = (rwidth / self.orig_width) * bgzoom
+            elif rheight is not None:
+                self.bgzoom = (rheight / self.orig_height) * bgzoom
+            else:
+                self.bgzoom = bgzoom
+
             # Create cropped and bgzoomed pieces
             self.pieces = self._create_pieces()
         
@@ -1180,7 +1193,7 @@ init -10 python:
     # Test version - just render the middle piece
     def test_middle_piece(image_file):
         base_image = Image(image_file)
-        margins = adventure.margins.get(image_file, {"top": 16, "left": 16, "right": 16, "bottom": 16})
+        margins = adventure.slice_metrics.get(image_file, {"top": 16, "left": 16, "right": 16, "bottom": 16})
         orig_width, orig_height = base_image.load().get_size()
         
         left = margins["left"]
@@ -1195,7 +1208,7 @@ init -10 python:
         return middle_piece
 
     # <class>
-    class getMousePosition(renpy.Displayable):
+    class AdventureGetMousePosition(renpy.Displayable):
 
         # <def>
         def __init__(self):
@@ -1299,10 +1312,10 @@ init -10 python:
         def render(self, width, height, st, at):
             return renpy.Render(1, 1)
         # </def render>
-    # </class>
+    # </class AdventureGetMousePosition>
 
     # Initialize the mouse position variables
-    store.mousePosition = getMousePosition()
+    adventure.mouse_position = AdventureGetMousePosition()
     
     # <def>
     def adventure_measure_text_height(text_content, width, **text_properties):
@@ -1707,16 +1720,19 @@ https://ko-fi.com/jeffday
         # <if>
         if not adventure.gathering_hints:
             # <if>
-            if adventure.first_person:
-                person = "I "
-            else:
-                person = "You "
-            # </if>
-            # <if>
-            if bestmatch.strip() != "":
-                adventure.matched_action = True
-                logtext = "{b}{i}" + person + adventure_escape_renpy(bestmatch) + "{/i}{/b}"
-                ADVENTURE_LOG.add_history(kind="adv", what=logtext, who=ADVENTURE_LOG.name)
+            if adventure.first_person != None:
+                # <if>
+                if adventure.first_person:
+                    person = "I "
+                else:
+                    person = "You "
+                # </if>
+                # <if>
+                if bestmatch.strip() != "":
+                    adventure.matched_action = True
+                    logtext = "{b}{i}" + person + adventure_escape_renpy(bestmatch) + "{/i}{/b}"
+                    ADVENTURE_LOG.add_history(kind="adv", what=logtext, who=ADVENTURE_LOG.name)
+                # </if>
             # </if>
             return len(matches) != 0
         else:
@@ -1952,7 +1968,7 @@ screen adventure_toolbar():
     frame:
         background Transform(AdventureNineSliceFrame((adventure_toolbar_icon("toolbar-bg.png")), bgzoom = adventure.toolbar_iconzoom), alpha=adventure.toolbar_bg_opacity)
         xpos int(toolbar_x - 1)
-        ypos int(toolbar_y)
+        ypos int(toolbar_y - 1)
         xsize int(toolbar_width)
         ysize int(toolbar_height)
     # </frame>
@@ -2147,7 +2163,7 @@ screen adventure_interaction():
             # </for>
         # </if icon>
     # </for interactables>
-    add mousePosition
+    add adventure.mouse_position
     use adventure_editor
     use adventure_overlay
 # </screen adventure_interaction>
@@ -2407,15 +2423,12 @@ screen choice(items):
                 $ iscancel = adventure_extract_tag("cancel", i["caption"])
                 # <python>
                 python:
-                    match True:
-                        case True if isevent:
-                            choice_type = "event"
-                        case True if iscancel:
-                            choice_type = "cancel"
-                        # </case>
-                        case _:
-                            choice_type = "normal"
-                    # </match>
+                    if isevent:
+                        choice_type = "event"
+                    elif iscancel:
+                        choice_type = "cancel"
+                    else:
+                        choice_type = "normal"
                 # </python>
                 # <if>
                 if prompt:
@@ -2451,7 +2464,7 @@ screen choice(items):
                         ysize my_height
                         padding (0, 0, 0, 40)
                         action i["action"]
-                        background AdventureNineSliceFrame(adventure.choice_frame, bgzoom = 0.2, child=VBox(
+                        background AdventureNineSliceFrame(adventure.choice_frame, bgzoom = 1, child=VBox(
                             HBox(
                                 Null(width=40, height=1),
                                 VBox(Transform(Image(choice_icon), zoom=0.09), xsize=10, yfill=False, xmaximum=40, xanchor=0.5),
@@ -2462,7 +2475,7 @@ screen choice(items):
                                 xalign=0, xmaximum=my_width, yfill=False, yalign=0.5, background="#ff0000"
                             ), spacing=0, ysize=(my_height-40)
                         ))
-                        hover_background AdventureNineSliceFrame(adventure.choice_frame_hover, bgzoom = 0.2, child=VBox(
+                        hover_background AdventureNineSliceFrame(adventure.choice_frame_hover, bgzoom = 1, child=VBox(
                             HBox(
                                 Null(width=40, height=1),
                                 VBox(Transform(Image(choice_icon), zoom=0.09), xsize=10, ysize=10, yfill=False, xmaximum=40, xanchor=0.5),
