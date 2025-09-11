@@ -143,6 +143,16 @@ MIT License - see [LICENSE](LICENSE) file for details.
 
 ## Changelog
 
+### 0.2.9
+- Renamed adventure.margins to adventure.slice_metrics to reflect its actual usage.
+- The images for custom Choice Menu Frames are no longer picky about dimensions, as
+  long as their intended source_render_width or source_render_height is specified
+  in slice_metrics.
+- Added a minimal example script.rpy in the root of the repository.
+- These aren't in the actual source release, but the GitHub wiki has been extensively
+  built out with documentaiton details, and a series of How-To Guides now has three
+  entries on https://adventure-for-renpy.blogspot.com/
+
 ### 0.2.8
 - If a needed icon isn't found in a custom iconset location, Adventure
   will now attempt to fall back to the default free-icons iconset within
