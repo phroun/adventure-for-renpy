@@ -3,7 +3,7 @@
 **
 **   adventure.rpy - Adventure Module (for Ren'Py)
 **
-**   Version 0.2 revision 8
+**   Version 0.2 revision 9
 **
 **************************************************************************
 This module is released under the MIT License:
@@ -34,7 +34,7 @@ DEALINGS IN THE SOFTWARE.
 
 define ADVENTURE_VERSION_MAJOR = 0
 define ADVENTURE_VERSION_MINOR = 2
-define ADVENTURE_VERSION_REVISION = 8
+define ADVENTURE_VERSION_REVISION = 9
 
 define ADVENTURE_UNSET = "unset"
 
