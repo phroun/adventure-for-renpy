@@ -3,7 +3,7 @@
 init python:
 
     # Your Adventure for Ren'Py Configuration Options go here:
-    
+
     adventure.toolbar_icons = ["ex", "say", "op", "go"]
     adventure.toolbar_position = "bottom"
     adventure.choice_position = "bottom"
@@ -40,7 +40,7 @@ label start:
 
     label .loop:
     call adventure_input("demo room")
-    
+
     if player_chooses_to("exit"):
         jump game_end
 
