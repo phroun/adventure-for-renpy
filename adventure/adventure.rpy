@@ -93,6 +93,7 @@ init -10 python:
     adventure.iconset = "free-icons"
     adventure.iconzoom = 0.1
     adventure.icon_padding = 5
+    adventure.icon_grace_radius = 60
 
     #### DO NOT MODIFY THIS FILE ####
 
@@ -1603,15 +1604,29 @@ init -10 python:
                             # </if>
                         # </if polygon with at least 3 points>
                     # </for all polygons in room>
+                    best_icon = None
+                    best_distance = 99999
                     # <for>
                     for icon in adventure.screen_icons:
                         if icon["active"] and adventure_point_in_icon(current_x, current_y, icon):
                             adventure.targets = [(icon["interactableId"], icon["verb"])]
+                        if len(adventure.targets) == 0 and icon["active"]:
+                            icon_distance = adventure_icon_distance(current_x, current_y, icon)
+                            # <if>
+                            if icon_distance < adventure.icon_grace_radius and icon_distance < best_distance:
+                                best_icon = [(icon["interactableId"], icon["verb"])]
+                                best_distance = icon_distance
+                            # </if>
                         # </if>
                     # </for>
                     # <if>
+                    if len(adventure.targets) == 0 and best_icon is not None:
+                        adventure.targets = best_icon
+                    # </if>
+                    # <if>
                     if clicking and ev.button == 1:
                         adventure.considered_targets = adventure.targets
+                    # </if>
                     if clicked and ev.button == 1 and adventure.targets == adventure.considered_targets:
                         adventure.target_x = adventure.mousex
                         adventure.target_y = adventure.mousey
@@ -1688,6 +1703,14 @@ init -10 python:
         top = center_y - half_height
         bottom = center_y + half_height
         return left <= x <= right and top <= y <= bottom
+    # </def>
+    
+    # <def>
+    def adventure_icon_distance(x, y, icon):
+        center_x, center_y = icon["position"]
+        # Calculate Euclidean distance from point to center
+        distance = ((x - center_x) ** 2 + (y - center_y) ** 2) ** 0.5
+        return distance
     # </def>
 
     # <def>
