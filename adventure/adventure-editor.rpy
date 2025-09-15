@@ -3,7 +3,7 @@
 **
 **   adventure-editor.rpy - Editor for Adventure Module (for Ren'Py)
 **
-**   Version 0.2 revision 9
+**   Version 0.2 revision 10
 **
 **************************************************************************
 This module is released under the MIT License:
@@ -34,7 +34,7 @@ DEALINGS IN THE SOFTWARE.
 
 define ADVENTURE_EDITOR_VERSION_MAJOR = 0
 define ADVENTURE_EDITOR_VERSION_MINOR = 2
-define ADVENTURE_EDITOR_VERSION_REVISION = 9
+define ADVENTURE_EDITOR_VERSION_REVISION = 10
 
 define ADVENTURE_EDITOR_TOOL_PLAY = 0
 define ADVENTURE_EDITOR_TOOL_SELECT = 1

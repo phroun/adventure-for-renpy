@@ -143,6 +143,23 @@ MIT License - see [LICENSE](LICENSE) file for details.
 
 ## Changelog
 
+### 0.2.10
+- New core Verb Icons in the "Go" Layer:
+  - Go Back (Retreat)
+  - Turn Around (Look Back)
+  - Turn Left (Look Left)
+  - Turn Right (Look Right)
+- Confirm prompts are now enhanced and colorized to match the Ren'Py
+  Project's GUI color theme.
+- AdventureNineSlice now has support for:
+  - source (image filename different from the frame name),
+  - Extensions beyond the normal requested frame size:
+    - extend-top, extend-left, extend-right, extend-bottom
+  - Layers that render before and after the main slice:
+    - render-before, render-after, render-before-zoom, render-after-zoom
+    - These extra layers do not inherit matrixcolor, that way drop shadows
+      do not get inverted or theme-tinted.
+
 ### 0.2.9
 - Renamed adventure.margins to adventure.slice_metrics to reflect its actual usage.
 - The images for custom Choice Menu Frames are no longer picky about dimensions, as
