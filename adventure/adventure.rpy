@@ -123,7 +123,6 @@ init -10 python:
     #### DO NOT MODIFY THIS FILE ####
     
     adventure.confirm_frame = "adventure/images/confirm-frame.png"
-    # adventure.confirm_frame_shadow = "adventure/images/confirm-frame-2.png"
     
     #### DO NOT MODIFY THIS FILE ####
 
@@ -2720,7 +2719,6 @@ screen adventure_alert_box(message, ok_action):
             null height 10
 # </screen>
 
-
 # <screen>
 screen choice(items):
     modal True
@@ -2861,33 +2859,14 @@ screen choice(items):
             # </for>
         # </vbox>
     # </frame>
-
 # </screen choice>
 
-# <style>
-# style choice_vbox:
-#     xalign 0.5
-#     spacing 10
-# </style choice_vbox>
-
-# <style>
-# style choice_button:
-#     xminimum 400  # Minimum button width
-#     xalign 0.5
-# </style choice_button>
-
-# <style>
-# style choice_button_text:
-#     xalign 0.5
-#     color "#ffffff"
-#     hover_color "#ffff00"  # Yellow on hover
-#     size 24
-# </style choice_button_text>
-
+# <screen>
 screen confirm(message, yes_action, no_action):
     modal True
     zorder 200
 
+    # <python>
     python:
         bgz = 0.3
         inversion = 1
@@ -2895,40 +2874,39 @@ screen confirm(message, yes_action, no_action):
         if not adventure_is_dark_theme():
             inversion = 1 - inversion
         # </if>
-    # Custom background/frame
+    # </python>
+
+    # <frame>
     frame:
-        # Your custom styling here
         background AdventureNineSliceFrame(adventure.confirm_frame, bgzoom = 0.6,
             matrixcolor=AdventureThemeColorizeMatrix(gui.accent_color)
         )
-        #  * InvertMatrix(adventure_dark_inversion())
-        # adventure.confirm_frame_shadow, bgzoom = 2,
-        # child=Transform(AdventureNineSliceFrame(
-        #    ), )
-        #  ), matrixcolor=(ColorizeMatrix("#000000", gui.accent_color) * InvertMatrix(adventure_dark_inversion()))
-        # add Solid("#FF0000") alpha 0.5  # Semi-transparent red
 
         padding (50, 30)
         xalign 0.5
         yalign 0.5
         
+        # <vbox>
         vbox:
             spacing 30
             xalign 0.5
             yalign 0.5
             
-            # Message text
+            # <text>
             text message:
                 style "confirm_prompt"
                 xalign 0.5
+            # </text>
                 
             # Buttons
+            # <hbox>
             hbox:
                 spacing 50
                 xalign 0.5
                 yalign 0.5
 
                 # Custom Yes button
+                # <button>
                 button:
                     action yes_action
                     xysize (100, 60)
@@ -2951,6 +2929,7 @@ screen confirm(message, yes_action, no_action):
                         matrixcolor=AdventureThemeColorizeMatrix(gui.selected_color))
                     )
                     
+                    # <text>
                     text _("Yes"):
                         xalign 0.5
                         yalign 0.5
@@ -2958,8 +2937,11 @@ screen confirm(message, yes_action, no_action):
                         hover_color gui.interface_text_color
                         selected_color gui.interface_text_color
                         size 24
+                    # </text>
+                # </button>
 
                 # Custom Yes button
+                # <button>
                 button:
                     action no_action
                     xysize (100, 60)
@@ -2982,6 +2964,7 @@ screen confirm(message, yes_action, no_action):
                         matrixcolor=AdventureThemeColorizeMatrix(gui.selected_color))
                     )
                     
+                    # <text>
                     text _("No"):
                         xalign 0.5
                         yalign 0.5
@@ -2989,9 +2972,15 @@ screen confirm(message, yes_action, no_action):
                         hover_color gui.interface_text_color
                         selected_color gui.interface_text_color
                         size 24
+                    # </text>
+                # </button>
+            # </hbox>
+        # </vbox>
+    # </frame>
+# </screen confirm>
 
-# Optional: Custom styles for the confirm screen
-    
+# <style>
 style confirm_prompt:
     size 24
     color ("#FFFFFF" if adventure_is_dark_theme() else "#000000")
+# </style>
