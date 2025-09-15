@@ -4,9 +4,7 @@
 init python:
     import os
     filename, line_number = renpy.get_filename_line()
-    relpath = os.path.dirname(filename)
-    if relpath.startswith("game/"):
-        relpath = relpath[5:]
+    relpath = adventure_plugin_path(filename)
 
     adventure.slice_metrics[relpath + "/toolbar-bg.png"] = {
        "left": 10, "top": 10, "right": 10, "bottom": 10, "source_width": 170

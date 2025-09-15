@@ -371,7 +371,7 @@ init -10 python:
     adventure.modalFreeze = 0
     adventure.mousex = -1
     adventure.mousey = -1
-    adventure.visibleMode = "   "
+    adventure.visibleMode = "default"
     adventure.interactableId = 0
     adventure.editorPos = 0
     adventure.result = ""
@@ -404,7 +404,7 @@ init -10 python:
     def adventure_cached_exists(filename):
         # <if>
         if not filename in adventure.rexCache:
-            adventure.rexCache[filename] = renpy.exists(filename)
+            adventure.rexCache[filename] = renpy.loadable(filename)
         # </if>
         return adventure.rexCache[filename]
     # </def>
@@ -553,7 +553,7 @@ init -10 python:
         elif adventure_cached_exists("adventure/images" + iconset_mid + name):
             return "adventure/images" + iconset_mid + name
         else:
-            return "adventure/images/free-icons/name"
+            return "adventure/images/free-icons/" + name
         # </if>
     # </def>
 
@@ -566,8 +566,18 @@ init -10 python:
         elif adventure_cached_exists("adventure/images" + iconset_mid + name):
             return "adventure/images" + iconset_mid + name
         else:
-            return "adventure/images/free-icons/name"
+            return "adventure/images/free-icons/" + name
         # </if>
+    # </def>
+
+    # <def>
+    def adventure_plugin_path(filename):
+        relpath = os.path.dirname(filename)
+        if relpath.startswith("//game/"):
+            relpath = relpath[7:]
+        if relpath.startswith("game/"):
+            relpath = relpath[5:]
+        return relpath
     # </def>
 
     # <def>
@@ -2304,12 +2314,19 @@ screen adventure_toolbar():
             toolbar_left_pad = int(metrics["toolbar_left_padding"] * adventure.toolbar_iconzoom / 0.1)
             toolbar_top_pad = int(metrics["toolbar_top_padding"] * adventure.toolbar_iconzoom / 0.1)
             valid_icons = []
-            icon_width = adventure.toolbar_iconzoom * adventure.iconSizes[
-                    adventure_toolbar_icon("toolbar-inactive.png")
-                ][0]
-            icon_height = adventure.toolbar_iconzoom * adventure.iconSizes[
-                    adventure_toolbar_icon("toolbar-inactive.png")
-                ][1]
+            # <try>
+            try:
+                icon_width = adventure.toolbar_iconzoom * adventure.iconSizes[
+                        adventure_toolbar_icon("toolbar-inactive.png")
+                    ][0]
+                icon_height = adventure.toolbar_iconzoom * adventure.iconSizes[
+                        adventure_toolbar_icon("toolbar-inactive.png")
+                    ][1]
+            except:
+                # Fallbacks just to prevent crash
+                icon_width = 20
+                icon_height = 20
+            # </try>
             icon_length = icon_height if vertical else icon_width
             icon_depth = icon_width if vertical else icon_height
             toolbar_spacing = (metrics["toolbar_vertical_spacing"] if vertical else metrics["toolbar_horizontal_spacing"]) * (adventure.toolbar_iconzoom/0.1)
@@ -2562,6 +2579,7 @@ screen adventure_interaction():
                             (this_size_raw[0] * adventure.iconzoom) if this_size_raw[0] != None else 20,
                             (this_size_raw[1] * adventure.iconzoom) if this_size_raw[1] != None else 20
                         )
+                        
                         adventure.screen_icons.append({
                             "interactableId": this_id,
                             "active": this_active,
