@@ -444,16 +444,13 @@ init python:
         if adventure.interactableId <= len(adventure.room) - 1:
             this_interactable = adventure.room[adventure.interactableId]
             # <if>
-            if this_interactable[field] == "":
-                return ""
+            if field in this_interactable:
+                return adventure_active_value(this_interactable[field])
             else:
-                # <if>
-                if this_interactable[field][0] == "/":
-                    return ""
-                else:
-                    return this_interactable[field]
-                # </if>
+                return ""
             # </if>
+        else:
+            return ""
         # </if>
     # </def>
 

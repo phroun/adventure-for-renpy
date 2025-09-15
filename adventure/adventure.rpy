@@ -1544,6 +1544,32 @@ init -10 python:
     def AdventureExpandedBackground(displayable, left=0, right=0, top=0, bottom=0):
         return AdventureExpandedDisplayable(displayable, left, right, top, bottom)
     # </def>
+    
+    # <def>
+    def adventure_tool_applies(tool, layers):
+        # <if>
+        if tool in layers:
+            return True
+        else:
+            # <for>
+            for verb in adventure.tool_verbs[tool]:
+                included_tool = None
+                # <if>
+                if verb.startswith('*'):
+                    included_tool = verb[1:]
+                elif verb.startswith('.*'):
+                    included_tool = verb[2:]
+                # </if>
+                # <if>
+                if included_tool is not None:
+                    # <if>
+                    if included_tool in layers:
+                        return True
+                    # </if>
+                # </if>
+            # </for>
+        # </if>
+    # </def>
 
     # <class>
     class AdventureGetMousePosition(renpy.Displayable):
@@ -1593,9 +1619,19 @@ init -10 python:
                     adventure.targets = []
                     # <for>
                     for i in range(len(adventure.room)):
+                        layers = []
+                        # <for>
+                        for layer in ["ex", "say", "op", "go"]:
+                            # <if>
+                            if adventure_active_value(adventure.room[i][layer]) != "":
+                                layers.append(layer)
+                            # </if>
+                        # </for>
+                        # </if>
                         if (
                             adventure.room[i]["type"] == "polygon"
                             and (len(adventure.room[i]["points"]) > 2)
+                            and adventure_tool_applies(adventure.active_tool, layers)
                             and adventure_check_condition(adventure.room[i]["condition"])
                         ):
                             # <if>
@@ -2008,7 +2044,7 @@ https://ko-fi.com/jeffday
                         # <for>
                         for inter_verb in inter_verbs:
                             # <if>
-                            if inter_verb.startswith('*'):
+                            if inter_verb.startswith('*') or inter_verb.startswith('.*'):
                                 # expand group to list of verbs
                                 these_verbs.extend(adventure.tool_verbs[inter_verb[1:]])
                             else:
@@ -2118,6 +2154,21 @@ https://ko-fi.com/jeffday
             # </if>
         # </for>
         return False
+    # </def>
+
+    # <def>
+    def adventure_active_value(value):
+        # <if>
+        if value == "":
+            return ""
+        else:
+            # <if>
+            if value[0] == "/":
+                return ""
+            else:
+                return value
+            # </if>
+        # </if>
     # </def>
     
     # <def>
@@ -2436,7 +2487,7 @@ screen adventure_interaction():
             # <for>
             for tool in toolset:
                 # <if>
-                if tool.startswith("*"):
+                if tool.startswith('*'):
                     tools.append(tool[1:])
                 # </if>
             # </for>
