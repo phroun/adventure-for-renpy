@@ -121,6 +121,11 @@ init -10 python:
     adventure.choice_textcolor_selected = "#003333"
     
     #### DO NOT MODIFY THIS FILE ####
+    
+    adventure.confirm_frame = "adventure/images/confirm-frame.png"
+    # adventure.confirm_frame_shadow = "adventure/images/confirm-frame-2.png"
+    
+    #### DO NOT MODIFY THIS FILE ####
 
     adventure.slice_metrics = {
        "adventure/images/choice-frame.png": {
@@ -131,6 +136,40 @@ init -10 python:
            "left": 400, "top": 36, "right": 36, "bottom": 36,
            "source_render_width": 640,
        },
+       "adventure/images/confirm-frame.png": {
+           "left": 120, "top": 120, "right": 120, "bottom": 120,
+           "source_render_width": 100,
+           "render_first": "adventure/images/confirm-frame-shadow.png",
+           "render_first_zoom": 1.0,
+       },
+       "button": {
+           "source": "adventure/images/confirm-frame.png",
+           "left": 120, "top": 120, "right": 120, "bottom": 120,
+           "source_render_width": 60,
+           "render_first": "adventure/images/confirm-frame-shadow.png",
+           "render_first_zoom": 1.0,
+       },
+       "button-hover": {
+           "source": "adventure/images/confirm-frame.png",
+           "left": 120, "top": 120, "right": 120, "bottom": 120,
+           "source_render_width": 60,
+           "render_first": "adventure/images/confirm-frame-shadow.png",
+           "render_first_zoom": 1.0,
+       },
+       "button-selected": {
+           "source": "adventure/images/confirm-frame.png",
+           "left": 120, "top": 120, "right": 120, "bottom": 120,
+           "source_render_width": 60,
+           "render_first": "adventure/images/confirm-frame-shadow.png",
+           "render_first_zoom": 1.0,
+       },
+       "adventure/images/confirm-frame-shadow.png": {
+           "left": 96, "top": 96, "right": 96, "bottom": 96,
+           "extend-left": 96, "extend-top": 88, "extend-right": 146, "extend-bottom": 128,
+           "x-offset": -98, "y-offset": -68,
+           # "zoom": 0.31
+           "source_render_width": 100,
+       },
     }
 
     #### DO NOT MODIFY THIS FILE ####
@@ -139,7 +178,7 @@ init -10 python:
 
         # These are the tooltips for the toolbar icons:
 
-        "go": "Go (Walk, Travel)",
+        "go": "Go (Walk, Travel, Turn)",
         "ex": "Examine (Look, Listen, etc.)",
         "op": "Use",
         "say": "Talk",
@@ -167,13 +206,17 @@ init -10 python:
         # each overlay icon:
 
         "go": {
-            "go": ("verb-go.png", "*go")
+            "go": ("verb-go.png", "*go"),
+            "go back": ("verb-go-back.png", "go back;retreat"),
+            "turn left": ("verb-turn-left.png", "turn left;turn to the left;look left;look to the left;left face;face left"),
+            "turn right": ("verb-turn-right.png", "turn right;turn to the right;look right;look to the right;right face;face right"),
+            "turn around": ("verb-turn-around.png", "turn around;look back;about face"),
         },
         "ex": {
             "ex": ("verb-hint.png", "*ex"),
             "taste": ("verb-taste.png", "taste;lick"),
             "look": ("verb-look.png", "look"),
-            "read": ("verb-read.png", "read")
+            "read": ("verb-read.png", "read"),
         },
         "op": {
             "op": ("verb-hint.png", "*op"),
@@ -181,10 +224,10 @@ init -10 python:
             "eat": ("verb-eat.png", "eat"),
             "wait": ("verb-wait.png", "wait"),
             "taste": ("verb-taste.png", "taste;lick"),
-            "read": ("verb-read.png", "read")
+            "read": ("verb-read.png", "read"),
         },
         "say": {
-            "speak": ("verb-speak.png", "*say")
+            "speak": ("verb-speak.png", "*say"),
         }
     }
 
@@ -363,6 +406,29 @@ init -10 python:
             adventure.rexCache[filename] = renpy.exists(filename)
         # </if>
         return adventure.rexCache[filename]
+    # </def>
+    
+    # <def>
+    def adventure_is_dark_theme():
+        bg_color = gui.main_menu_background
+        if isinstance(bg_color, str):
+            # Fall back to interface text color - light text usually means dark theme
+            text_color = Color(gui.text_color)
+            r, g, b, a = text_color.rgba
+            # If text is light (high values), theme is probably dark
+            return (r + g + b) / 3 > 0.5
+        if hasattr(bg_color, 'rgba'):
+            color = bg_color
+        else:
+            color = Color(bg_color)
+        r, g, b, a = color.rgba
+        luminance = 0.299 * r + 0.587 * g + 0.114 * b
+        return luminance < 0.5  # Dark if luminance is low
+    # </def adventure_is_dark_theme>
+    
+    # <def>
+    def adventure_dark_inversion():
+        return 1 if adventure_is_dark_theme() else 0
     # </def>
 
     # <def>
@@ -995,12 +1061,17 @@ init -10 python:
 
     # <class>
     class AdventureNineSliceFrame(renpy.Displayable):
-        def __init__(self, image_file, child=None, bgzoom=1.0, style='default', **properties):
+        """
+        A nine-slice frame displayable with support for render_first base frames.
+        """
+        
+        def __init__(self, image_file, child=None, bgzoom=1.0, bmatrixcolor=None, style='default', **properties):
             super(AdventureNineSliceFrame, self).__init__(**properties)
-            
+
             self.child = renpy.displayable(child) if child else None
             self.image_file = image_file
-            
+            self.bmatrixcolor = bmatrixcolor if bmatrixcolor is not None else InvertMatrix(0.0)
+
             # Get margins from registry or use default
             # <if>
             if image_file in adventure.slice_metrics:
@@ -1008,44 +1079,89 @@ init -10 python:
             else:
                 margins = {"top": 16, "left": 16, "right": 16, "bottom": 16 }
             # </if>
+            
+            # Determine actual image file to load
+            # If 'source' is specified in metrics, use that as the actual filename
+            # Otherwise, use the image_file parameter as both key and filename
+            self.actual_image_file = margins.get("source", image_file)
             self.margin_top = margins["top"]
-            self.margin_left = margins["left"] 
+            self.margin_left = margins["left"]
             self.margin_right = margins["right"]
             self.margin_bottom = margins["bottom"]
-            
+
+            self.extend_top = margins.get("extend-top", 0)
+            self.extend_left = margins.get("extend-left", 0)
+            self.extend_right = margins.get("extend-right", 0)
+            self.extend_bottom = margins.get("extend-bottom", 0)
+            self.x_offset = margins.get("x-offset", 0)
+            self.y_offset = margins.get("y-offset", 0)
+
+            # Handle render_first recursively
+            self.render_first_file = margins.get("render_first", None)
+            self.render_first_zoom = margins.get("render_first_zoom", 1.0)
+            self.render_first_frame = None
+            if self.render_first_file:
+                # Create the render_first nine-slice frame (no child, as it's just a base)
+                self.render_first_frame = AdventureNineSliceFrame(
+                    self.render_first_file, 
+                    child=None, 
+                    bgzoom=bgzoom*self.render_first_zoom, 
+                    style=style, 
+                    **properties
+                )
+
+            # Handle render_after recursively
+            self.render_after_file = margins.get("render_after", None)
+            self.render_after_zoom = margins.get("render_after_zoom", 1.0)
+            self.render_after_frame = None
+            if self.render_after_file:
+                # Create the render_after nine-slice frame (no child, as it's just an overlay)
+                self.render_after_frame = AdventureNineSliceFrame(
+                    self.render_after_file, 
+                    child=None, 
+                    bgzoom=bgzoom*self.render_after_zoom,
+                    style=style,
+                    **properties
+                )
+
             # Load base image and get original size
-            self.base_image = Image(image_file)
+            self.base_image = Image(self.actual_image_file)
             self.orig_width, self.orig_height = self.base_image.load().get_size()
 
             rwidth = margins.get("source_render_width", None)
             rheight = margins.get("source_render_height", None)
-            
+            rzoom = margins.get("zoom", 1.0)
+
             if rwidth is not None:
-                self.bgzoom = (rwidth / self.orig_width) * bgzoom
+                # Calculate the nine-slice area width (excluding extension areas)
+                nineslice_orig_width = self.orig_width - self.extend_left - self.extend_right
+                self.bgzoom = (rwidth / nineslice_orig_width) * bgzoom
             elif rheight is not None:
-                self.bgzoom = (rheight / self.orig_height) * bgzoom
+                # Calculate the nine-slice area height (excluding extension areas)
+                nineslice_orig_height = self.orig_height - self.extend_top - self.extend_bottom
+                self.bgzoom = (rheight / nineslice_orig_height) * bgzoom
             else:
-                self.bgzoom = bgzoom
+                self.bgzoom = bgzoom * rzoom
 
             # Create cropped and bgzoomed pieces
             self.pieces = self._create_pieces()
-        
+
         def _create_pieces(self):
             """Create the 9 cropped pieces from the main image"""
             pieces = {}
-            
+
             # Apply bgzoom to the base image first, then crop
             if self.bgzoom != 1.0:
                 zoomed_image = Transform(self.base_image, zoom=self.bgzoom)
             else:
                 zoomed_image = self.base_image
-            
+
             # Use original margins for cropping (before any zoom scaling)
-            left = self.margin_left
-            right = self.margin_right 
-            top = self.margin_top
-            bottom = self.margin_bottom
-            
+            left = self.margin_left + self.extend_left
+            right = self.margin_right + self.extend_right
+            top = self.margin_top + self.extend_top
+            bottom = self.margin_bottom + self.extend_bottom
+
             # Calculate zoomed dimensions for cropping
             zoomed_left = int(left * self.bgzoom)
             zoomed_right = int(right * self.bgzoom)
@@ -1053,159 +1169,264 @@ init -10 python:
             zoomed_bottom = int(bottom * self.bgzoom)
             zoomed_width = int(self.orig_width * self.bgzoom)
             zoomed_height = int(self.orig_height * self.bgzoom)
-            
+
             center_width = zoomed_width - zoomed_left - zoomed_right
             center_height = zoomed_height - zoomed_top - zoomed_bottom
-            
+
             # Create pieces by cropping the zoomed image
             # Top row
-            pieces['tl'] = Transform(zoomed_image, crop=(0, 0, zoomed_left, zoomed_top))
-            pieces['top'] = Transform(zoomed_image, crop=(zoomed_left, 0, center_width, zoomed_top))
-            pieces['tr'] = Transform(zoomed_image, crop=(zoomed_left + center_width, 0, zoomed_right, zoomed_top))
-            
-            # Middle row  
-            pieces['left'] = Transform(zoomed_image, crop=(0, zoomed_top, zoomed_left, center_height))
-            pieces['middle'] = Transform(zoomed_image, crop=(zoomed_left, zoomed_top, center_width, center_height))
-            pieces['right'] = Transform(zoomed_image, crop=(zoomed_left + center_width, zoomed_top, zoomed_right, center_height))
-            
+            pieces['tl'] = Transform(zoomed_image, crop=(0, 0, zoomed_left, zoomed_top), matrixcolor=self.bmatrixcolor)
+            pieces['top'] = Transform(zoomed_image, crop=(zoomed_left, 0, center_width, zoomed_top), matrixcolor=self.bmatrixcolor)
+            pieces['tr'] = Transform(zoomed_image, crop=(zoomed_left + center_width, 0, zoomed_right, zoomed_top), matrixcolor=self.bmatrixcolor)
+
+            # Middle row
+            pieces['left'] = Transform(zoomed_image, crop=(0, zoomed_top, zoomed_left, center_height), matrixcolor=self.bmatrixcolor)
+            pieces['middle'] = Transform(zoomed_image, crop=(zoomed_left, zoomed_top, center_width, center_height), matrixcolor=self.bmatrixcolor)
+            pieces['right'] = Transform(zoomed_image, crop=(zoomed_left + center_width, zoomed_top, zoomed_right, center_height), matrixcolor=self.bmatrixcolor)
+
             # Bottom row
-            pieces['bl'] = Transform(zoomed_image, crop=(0, zoomed_top + center_height, zoomed_left, zoomed_bottom))
-            pieces['bottom'] = Transform(zoomed_image, crop=(zoomed_left, zoomed_top + center_height, center_width, zoomed_bottom))
-            pieces['br'] = Transform(zoomed_image, crop=(zoomed_left + center_width, zoomed_top + center_height, zoomed_right, zoomed_bottom))
-            
+            pieces['bl'] = Transform(zoomed_image, crop=(0, zoomed_top + center_height, zoomed_left, zoomed_bottom), matrixcolor=self.bmatrixcolor)
+            pieces['bottom'] = Transform(zoomed_image, crop=(zoomed_left, zoomed_top + center_height, center_width, zoomed_bottom), matrixcolor=self.bmatrixcolor)
+            pieces['br'] = Transform(zoomed_image, crop=(zoomed_left + center_width, zoomed_top + center_height, zoomed_right, zoomed_bottom), matrixcolor=self.bmatrixcolor)
+
             return pieces
-        
-        def render(self, width, height, st, at):
+
+        def _calculate_main_frame_dimensions(self, width, height):
+            """Calculate the main frame dimensions based on child content, using bgzoom from source_render_width"""
             # Get child size if we have one
             child_width = child_height = 0
-            child_render = None
-            
             if self.child:
-                child_render = renpy.render(self.child, width, height, st, at)
+                child_render = renpy.render(self.child, width, height, 0, 0)
                 child_width, child_height = child_render.get_size()
-            
+
+            # Calculate the actual sizes of the bgzoomed pieces (margins are scaled by bgzoom)
+            actual_left_width = int(self.extend_left * 0 * self.bgzoom) + int(self.margin_left * self.bgzoom)
+            actual_right_width = int(self.extend_right * 0 * self.bgzoom) + int(self.margin_right * self.bgzoom)
+            actual_top_height = int(self.extend_top * 0 * self.bgzoom) + int(self.margin_top * self.bgzoom)
+            actual_bottom_height = int(self.extend_bottom * 0 * self.bgzoom) + int(self.margin_bottom * self.bgzoom)
+
+            # Calculate minimum frame size needed based on content and scaled margins
+            min_width = actual_left_width + actual_right_width + child_width
+            min_height = actual_top_height + actual_bottom_height + child_height
+
+            # Determine main frame size based on content requirements
+            main_frame_width = max(min_width, width if width < 999999 else min_width)
+            main_frame_height = max(min_height, height if height < 999999 else min_height)
+
+            return main_frame_width, main_frame_height, child_width, child_height
+
+        def _render_nine_slice(self, render, frame_width, frame_height, offset_x, offset_y, st, at):
+            """Render the nine-slice pieces to the given render object"""
             # Calculate the actual sizes of the bgzoomed pieces
-            actual_left_width = int(self.margin_left * self.bgzoom)
-            actual_right_width = int(self.margin_right * self.bgzoom)
-            actual_top_height = int(self.margin_top * self.bgzoom)
-            actual_bottom_height = int(self.margin_bottom * self.bgzoom)
-            
-            # Calculate minimum frame size needed
-            # min_width = actual_left_width + actual_right_width
-            # min_height = actual_top_height + actual_bottom_height
-            min_width = actual_left_width + actual_right_width + child_width - 100
-            min_height = actual_top_height + actual_bottom_height + child_height + 20
-            
-            # Determine actual frame size
-            frame_width = max(min_width, width if width < 999999 else min_width)
-            frame_height = max(min_height, height if height < 999999 else min_height)
-            
+            actual_frame_width = frame_width + int(self.extend_left*self.bgzoom) + int(self.extend_right * self.bgzoom)
+            actual_frame_height = frame_height + int(self.extend_top*self.bgzoom) + int(self.extend_bottom * self.bgzoom)
+
+            actual_left_width = int(self.extend_left*self.bgzoom) + int(self.margin_left*self.bgzoom)
+            actual_right_width = int(self.extend_right*self.bgzoom) + int(self.margin_right*self.bgzoom)
+            actual_top_height = int(self.extend_top*self.bgzoom) + int(self.margin_top*self.bgzoom)
+            actual_bottom_height = int(self.extend_bottom*self.bgzoom) + int(self.margin_bottom* self.bgzoom)
+            actual_mleft_width = int(self.margin_left * self.bgzoom)
+            actual_mright_width = int(self.margin_right * self.bgzoom)
+            actual_mtop_height = int(self.margin_top * self.bgzoom)
+            actual_mbottom_height = int(self.margin_bottom * self.bgzoom)
+
             # Calculate stretching dimensions
-            stretch_width = int(frame_width - actual_left_width - actual_right_width)
-            stretch_height = int(frame_height - actual_top_height - actual_bottom_height)
-            
-            # Create the render
-            render = renpy.Render(frame_width, frame_height)
-            
+            stretch_width = int(frame_width - actual_mleft_width - actual_mright_width)
+            stretch_height = int(frame_height - actual_mtop_height - actual_mbottom_height)
+
             # RENDER MIDDLE FIRST (as background layer)
             if stretch_width > 0 and stretch_height > 0:
-                middle_piece = Transform(self.pieces['middle'], 
-                                       xsize=stretch_width, 
+                middle_piece = Transform(self.pieces['middle'],
+                                       xsize=stretch_width,
                                        ysize=stretch_height,
                                        fit="stretch")
                 middle_render = renpy.render(middle_piece, stretch_width, stretch_height, st, at)
-                render.blit(middle_render, (actual_left_width, actual_top_height))
-            
+                render.blit(middle_render, (actual_left_width + offset_x, actual_top_height + offset_y))
+
             # RENDER EDGES ON TOP OF MIDDLE
             if stretch_width > 0:
                 if actual_top_height > 0:
                     # Top edge: stretch horizontally, keep natural height
-                    top_piece = Transform(self.pieces['top'], 
-                                        xsize=stretch_width, 
+                    top_piece = Transform(self.pieces['top'],
+                                        xsize=stretch_width,
                                         ysize=actual_top_height,
                                         fit="stretch")
                     top_render = renpy.render(top_piece, stretch_width, actual_top_height, st, at)
-                    render.blit(top_render, (actual_left_width, 0))
-                
+                    render.blit(top_render, (actual_left_width + offset_x, 0 + offset_y))
+
                 if actual_bottom_height > 0:
                     # Bottom edge: stretch horizontally, keep natural height
-                    bottom_piece = Transform(self.pieces['bottom'], 
-                                           xsize=stretch_width, 
+                    bottom_piece = Transform(self.pieces['bottom'],
+                                           xsize=stretch_width,
                                            ysize=actual_bottom_height,
                                            fit="stretch")
                     bottom_render = renpy.render(bottom_piece, stretch_width, actual_bottom_height, st, at)
-                    render.blit(bottom_render, (actual_left_width, frame_height - actual_bottom_height))
-            
+                    render.blit(bottom_render, (actual_left_width + offset_x, actual_frame_height - actual_bottom_height + offset_y))
+
             if stretch_height > 0:
                 if actual_left_width > 0:
                     # Left edge: keep natural width, stretch vertically
-                    left_piece = Transform(self.pieces['left'], 
+                    left_piece = Transform(self.pieces['left'],
                                          xsize=actual_left_width,
                                          ysize=stretch_height,
                                          fit="stretch")
                     left_render = renpy.render(left_piece, actual_left_width, stretch_height, st, at)
-                    render.blit(left_render, (0, actual_top_height))
-                
+                    render.blit(left_render, (0 + offset_x, actual_top_height + offset_y))
+
                 if actual_right_width > 0:
                     # Right edge: keep natural width, stretch vertically
-                    right_piece = Transform(self.pieces['right'], 
-                                          xsize=actual_right_width, 
+                    right_piece = Transform(self.pieces['right'],
+                                          xsize=actual_right_width,
                                           ysize=stretch_height,
                                           fit="stretch")
                     right_render = renpy.render(right_piece, actual_right_width, stretch_height, st, at)
-                    render.blit(right_render, (frame_width - actual_right_width, actual_top_height))
-            
+                    render.blit(right_render, (actual_frame_width - actual_right_width + offset_x, actual_top_height + offset_y))
+
             # RENDER CORNERS LAST (on top of everything)
             if actual_left_width > 0 and actual_top_height > 0:
                 tl_render = renpy.render(self.pieces['tl'], actual_left_width, actual_top_height, st, at)
-                render.blit(tl_render, (0, 0))
-            
+                render.blit(tl_render, (0 + offset_x, 0 + offset_y))
+
             if actual_right_width > 0 and actual_top_height > 0:
                 tr_render = renpy.render(self.pieces['tr'], actual_right_width, actual_top_height, st, at)
-                render.blit(tr_render, (frame_width - actual_right_width, 0))
-            
+                render.blit(tr_render, (actual_frame_width - actual_right_width + offset_x, 0 + offset_y))
+
             if actual_left_width > 0 and actual_bottom_height > 0:
                 bl_render = renpy.render(self.pieces['bl'], actual_left_width, actual_bottom_height, st, at)
-                render.blit(bl_render, (0, frame_height - actual_bottom_height))
-            
+                render.blit(bl_render, (0 + offset_x, actual_frame_height - actual_bottom_height + offset_y))
+
             if actual_right_width > 0 and actual_bottom_height > 0:
                 br_render = renpy.render(self.pieces['br'], actual_right_width, actual_bottom_height, st, at)
-                render.blit(br_render, (frame_width - actual_right_width, frame_height - actual_bottom_height))
+                render.blit(br_render, (actual_frame_width - actual_right_width + offset_x, actual_frame_height - actual_bottom_height + offset_y))
+
+        def render(self, width, height, st, at):
+            # Calculate main frame dimensions based on child content
+            main_frame_width, main_frame_height, child_width, child_height = self._calculate_main_frame_dimensions(width, height)
             
-            # Render child content if present
-            if child_render:
-                # Use content margins to position child in correct area
+            # Determine total render size considering extensions (scaled from native pixels)
+            scaled_extend_width = int(self.extend_left*self.bgzoom) + int(self.extend_right * self.bgzoom)
+            scaled_extend_height = int(self.extend_top*self.bgzoom) + int(self.extend_bottom * self.bgzoom)
+            total_render_width = main_frame_width + scaled_extend_width
+            total_render_height = main_frame_height + scaled_extend_height
+            
+            # If we have render_first or render_after frames, we need to account for their extensions too
+            render_first_extensions_x = 0
+            render_first_extensions_y = 0
+            render_first_render = None
+            render_after_extensions_x = 0
+            render_after_extensions_y = 0
+            render_after_render = None
+            
+            if self.render_first_frame:
+                # Render the render_first frame with the same main frame size
+                # This ensures it uses the same base dimensions but may extend beyond
+                render_first_render = self.render_first_frame.render(main_frame_width, main_frame_height, st, at)
+                render_first_width, render_first_height = render_first_render.get_size()
+                
+                # Update total render size to accommodate render_first extensions
+                total_render_width = max(total_render_width, render_first_width)
+                total_render_height = max(total_render_height, render_first_height)
+
+            if self.render_after_frame:
+                # Render the render_after frame with the same main frame size
+                # This ensures it uses the same base dimensions but may extend beyond
+                render_after_render = self.render_after_frame.render(main_frame_width, main_frame_height, st, at)
+                render_after_width, render_after_height = render_after_render.get_size()
+                
+                # Update total render size to accommodate render_after extensions
+                total_render_width = max(total_render_width, render_after_width)
+                total_render_height = max(total_render_height, render_after_height)
+
+            # Create the final render with the calculated total size
+            render = renpy.Render(total_render_width, total_render_height)
+
+            # Render the render_first frame first (as base layer)
+            if render_first_render:
+                # Position the render_first frame, accounting for its own offsets
+                render_first_x = 0
+                render_first_y = 0
+                render.blit(render_first_render, (render_first_x, render_first_y))
+
+            # Render our main nine-slice frame on top
+            # Position it using scaled offsets (offsets are in native pixels)
+            main_frame_offset_x = int(self.x_offset * self.bgzoom)
+            main_frame_offset_y = int(self.y_offset * self.bgzoom)
+            
+            self._render_nine_slice(render, main_frame_width, main_frame_height, 
+                                   main_frame_offset_x, main_frame_offset_y, st, at)
+
+            # Render child content if present - positioned relative to MAIN frame only
+            if self.child:
+                child_render = renpy.render(self.child, width, height, st, at)
+                
+                # Use content margins to position child in correct area (ignoring extensions/offsets)
                 actual_content_left = 0 # int(self.content_margin_left * self.bgzoom)
                 actual_content_right = 0 # int(self.content_margin_right * self.bgzoom)
                 actual_content_top = 0 # int(self.content_margin_top * self.bgzoom)
                 actual_content_bottom = 0 # int(self.content_margin_bottom * self.bgzoom)
-                
-                # Center the child in the content area (excluding shaded areas)
-                available_width = frame_width - actual_content_left - actual_content_right
-                available_height = frame_height - actual_content_top - actual_content_bottom
+
+                # Center the child in the main frame content area (excluding shaded areas)
+                available_width = main_frame_width - actual_content_left - actual_content_right
+                available_height = main_frame_height - actual_content_top - actual_content_bottom
                 child_x = actual_content_left + (available_width - child_width) // 2
                 child_y = actual_content_top + (available_height - child_height) // 2
+
+                # Apply main frame offset to child positioning
+                child_x += main_frame_offset_x
+                child_y += main_frame_offset_y
+
                 render.blit(child_render, (child_x, child_y))
-            
+
+            # Render the render_after frame last (as top overlay layer)
+            if render_after_render:
+                # Position the render_after frame, accounting for its own offsets
+                render_after_x = 0
+                render_after_y = 0
+                render.blit(render_after_render, (render_after_x, render_after_y))
+
             return render
     # </class>
 
-    # Test version - just render the middle piece
-    def test_middle_piece(image_file):
-        base_image = Image(image_file)
-        margins = adventure.slice_metrics.get(image_file, {"top": 16, "left": 16, "right": 16, "bottom": 16})
-        orig_width, orig_height = base_image.load().get_size()
-        
-        left = margins["left"]
-        right = margins["right"] 
-        top = margins["top"]
-        bottom = margins["bottom"]
-        
-        center_width = orig_width - left - right
-        center_height = orig_height - top - bottom
-        
-        middle_piece = Transform(base_image, crop=(left, top, center_width, center_height))
-        return middle_piece
+    class AdventureExpandedDisplayable(renpy.Displayable):
+        # <def>
+        def __init__(self, child, expand_left=0, expand_right=0, expand_top=0, expand_bottom=0, **kwargs):
+            super(AdventureExpandedDisplayable, self).__init__(**kwargs)
+            
+            self.child = renpy.displayable(child)
+            self.expand_left = expand_left
+            self.expand_right = expand_right  
+            self.expand_top = expand_top
+            self.expand_bottom = expand_bottom
+        # </def __init__>
+            
+        # <def>
+        def render(self, width, height, st, at):
+            # Render the child displayable
+            child_render = renpy.render(self.child, width, height, st, at)
+            child_width, child_height = child_render.get_size()
+            
+            # Calculate expanded dimensions
+            expanded_width = child_width + self.expand_left + self.expand_right
+            expanded_height = child_height + self.expand_top + self.expand_bottom
+            
+            # Create the expanded render
+            render = renpy.Render(expanded_width, expanded_height)
+            
+            # Position the child in the center of the expanded area
+            render.blit(child_render, (self.expand_left, self.expand_top))
+            
+            return render
+        # </def render>
+            
+        def visit(self):
+            return [self.child]
+        # </def>
+    # </class>
+
+    # <def>
+    def AdventureExpandedBackground(displayable, left=0, right=0, top=0, bottom=0):
+        return AdventureExpandedDisplayable(displayable, left, right, top, bottom)
+    # </def>
 
     # <class>
     class AdventureGetMousePosition(renpy.Displayable):
@@ -2446,47 +2667,68 @@ screen choice(items):
                     python:
                         choice_icon = "adventure/images/choice-" + choice_type + ".png"
                         
-                        my_width = int(geom["width"] * config.screen_width) - 80
+                        my_width = int(geom["width"] * config.screen_width) - 40
                         crazy_vbox = AdventureNineSliceFrame(adventure.choice_frame, bgzoom = 0.2, child=VBox(
                             HBox(
-                                Null(width=40, height=1),
-                                VBox(Transform(Image(choice_icon), zoom=0.09), xsize=10, yfill=False, xmaximum=40, xanchor=0.5),
+                                # Null(width=40, height=1),
+                                VBox(HBox(Transform(Image(choice_icon),
+                                zoom=0.09, yalign=0.5), ysize=50, yanchor=0), xsize=10, yfill=False,
+                                yminimum=50, xmaximum=50, xanchor=0.5),
                                 Null(width=30, height=1),
-                                VBox(Text(i["caption"], size=24, color="#000000", bold=True, ypos=0.5, yanchor=0.5, yfill=False),
-                                yfill=False, xfill=True),
-                                Null(width=50, height=1),
-                                xalign=0, xmaximum=my_width, yalign=0.5
+                                VBox(
+                                    Null(height=5),
+                                    Text(i["caption"], size=24, color="#000000", bold=True, ypos=0.5, yanchor=0.5, yfill=False),
+                                    Null(height=5),
+                                    yfill=False, xfill=True,
+                                    padding=(10,0)
+                                ),
+                                xalign=0, xmaximum=(my_width - 80),
+                                yalign=0.5, yminimum=40,
                             ), spacing=0
                         ))
-                        my_height = int(adventure_measure_height_at_width(crazy_vbox, my_width, 10))
+                        my_height = max(50, int(adventure_measure_height_at_width(crazy_vbox, my_width, 10)))
                         
                     # <button>
                     button:
-                        xfill True
+                        xsize (my_width - 80)
                         ysize my_height
-                        padding (0, 0, 0, 40)
+                        padding (0, 0, 0, 0)
                         action i["action"]
                         background AdventureNineSliceFrame(adventure.choice_frame, bgzoom = 1, child=VBox(
                             HBox(
-                                Null(width=40, height=1),
-                                VBox(Transform(Image(choice_icon), zoom=0.09), xsize=10, yfill=False, xmaximum=40, xanchor=0.5),
+                                # Null(width=40, height=1),
+                                VBox(HBox(Transform(Image(choice_icon),
+                                zoom=0.09, yalign=0.5), ysize=50, yanchor=0), xsize=10, yfill=False,
+                                yminimum=50, xmaximum=50, xanchor=0.5),
                                 Null(width=30, height=1),
-                                VBox(Text(i["caption"], size=24, color="#000000", bold=True, ypos=0.5, yanchor=0.5, yfill=True),
-                                yfill=True, xfill=True),
-                                Null(width=50, height=1),
-                                xalign=0, xmaximum=my_width, yfill=False, yalign=0.5, background="#ff0000"
-                            ), spacing=0, ysize=(my_height-40)
+                                VBox(
+                                    Null(height=5),
+                                    Text(i["caption"], size=24, color="#000000", bold=True, ypos=0.5, yanchor=0.5, yfill=True),
+                                    Null(height=5),
+                                    yfill=True, xfill=True,
+                                    padding=(10,0)
+                                ),
+                                xalign=0, xmaximum=(my_width), yfill=False,
+                                yalign=0.5, yminimum=40, background="#ff0000"
+                            ), spacing=0, ysize=(my_height)
                         ))
                         hover_background AdventureNineSliceFrame(adventure.choice_frame_hover, bgzoom = 1, child=VBox(
                             HBox(
-                                Null(width=40, height=1),
-                                VBox(Transform(Image(choice_icon), zoom=0.09), xsize=10, ysize=10, yfill=False, xmaximum=40, xanchor=0.5),
+                                # Null(width=40, height=1),
+                                VBox(HBox(Transform(Image(choice_icon),
+                                zoom=0.09, yalign=0.5), ysize=50, yanchor=0), xsize=10, yfill=False,
+                                yminimum=50, xmaximum=50, xanchor=0.5),
                                 Null(width=30, height=1),
-                                VBox(Text(i["caption"], size=24, color="#ffff00", bold=True, ypos=0.5, yanchor=0.5, yfill=True),
-                                yfill=True, xfill=True),
-                                Null(width=50, height=1),
-                                xalign=0, xmaximum=my_width, yfill=False, yalign=0.5
-                            ), spacing=0, ysize=(my_height-40)
+                                VBox(
+                                    Null(height=5),
+                                    Text(i["caption"], size=24, color="#ffff00", bold=True, ypos=0.5, yanchor=0.5, yfill=True),
+                                    Null(height=5),
+                                    yfill=True, xfill=True,
+                                    padding=(10,0)
+                                ),
+                                xalign=0, xmaximum=(my_width), yfill=False,
+                                yalign=0.5, yminimum=40
+                            ), spacing=0, ysize=(my_height)
                         ))
                     # </button>
                     null height 5
@@ -2499,21 +2741,132 @@ screen choice(items):
 # </screen choice>
 
 # <style>
-style choice_vbox:
-    xalign 0.5
-    spacing 10
+# style choice_vbox:
+#     xalign 0.5
+#     spacing 10
 # </style choice_vbox>
 
 # <style>
-style choice_button:
-    xminimum 400  # Minimum button width
-    xalign 0.5
+# style choice_button:
+#     xminimum 400  # Minimum button width
+#     xalign 0.5
 # </style choice_button>
 
 # <style>
-style choice_button_text:
-    xalign 0.5
-    color "#ffffff"
-    hover_color "#ffff00"  # Yellow on hover
-    size 24
+# style choice_button_text:
+#     xalign 0.5
+#     color "#ffffff"
+#     hover_color "#ffff00"  # Yellow on hover
+#     size 24
 # </style choice_button_text>
+
+screen confirm(message, yes_action, no_action):
+    modal True
+    zorder 200
+
+    python:
+        bgz = 0.66
+        inversion = 1
+        # <if>
+        if not adventure_is_dark_theme():
+            inversion = 1 - inversion
+        # </if>
+    # Custom background/frame
+    frame:
+        # Your custom styling here
+        background AdventureNineSliceFrame(adventure.confirm_frame, bgzoom = 1,
+            bmatrixcolor=(ColorizeMatrix("#000000", gui.accent_color) * InvertMatrix(adventure_dark_inversion()))
+        )
+        # adventure.confirm_frame_shadow, bgzoom = 2,
+        # child=Transform(AdventureNineSliceFrame(
+        #    ), )
+        #  ), matrixcolor=(ColorizeMatrix("#000000", gui.accent_color) * InvertMatrix(adventure_dark_inversion()))
+        # add Solid("#FF0000") alpha 0.5  # Semi-transparent red
+
+        padding (50, 30)
+        xalign 0.5
+        yalign 0.5
+        
+        vbox:
+            spacing 30
+            xalign 0.5
+            yalign 0.5
+            
+            # Message text
+            text message:
+                style "confirm_prompt"
+                xalign 0.5
+                
+            # Buttons
+            hbox:
+                spacing 50
+                xalign 0.5
+                yalign 0.5
+
+                # Custom Yes button
+                button:
+                    action yes_action
+                    xysize (100, 60)
+                    
+                    # Normal state background
+                    background Transform(
+                        AdventureNineSliceFrame("button", bgzoom=bgz,
+                        bmatrixcolor=ColorizeMatrix("#000000", gui.idle_color) * InvertMatrix(adventure_dark_inversion()))
+                    )
+                    
+                    # Hover state background
+                    hover_background Transform(
+                        AdventureNineSliceFrame("button-hover", bgzoom=bgz,
+                        bmatrixcolor=ColorizeMatrix("#000000", gui.hover_color) * InvertMatrix(adventure_dark_inversion()))
+                    )
+                    
+                    # Selected state (if needed)
+                    selected_background Transform(
+                        AdventureNineSliceFrame("button", bgzoom=bgz,
+                        bmatrixcolor=ColorizeMatrix("#000000", gui.selected_color) * InvertMatrix(adventure_dark_inversion()))
+                    )
+                    
+                    text _("Yes"):
+                        xalign 0.5
+                        yalign 0.5
+                        color "#FFFFFF"
+                        size 24
+
+                # Custom Yes button
+                button:
+                    action no_action
+                    xysize (100, 60)
+                    
+                    # Normal state background
+                    background Transform(
+                        AdventureNineSliceFrame("button", bgzoom=bgz,
+                        bmatrixcolor=ColorizeMatrix("#000000", gui.idle_color) * InvertMatrix(adventure_dark_inversion()))
+                    )
+                    
+                    # Hover state background
+                    hover_background Transform(
+                        AdventureNineSliceFrame("button-hover", bgzoom=bgz,
+                        bmatrixcolor=ColorizeMatrix("#000000", gui.hover_color) * InvertMatrix(adventure_dark_inversion()))
+                    )
+                    
+                    # Selected state (if needed)
+                    selected_background Transform(
+                        AdventureNineSliceFrame("button-selected", bgzoom=bgz,
+                        bmatrixcolor=ColorizeMatrix("#000000", gui.selected_color) * InvertMatrix(adventure_dark_inversion()))
+                    )
+                    
+                    text _("No"):
+                        xalign 0.5
+                        yalign 0.5
+                        color "#FFFFFF"
+                        size 24
+
+# Optional: Custom styles for the confirm screen
+style confirm_button:
+    background "#4CAF50"
+    hover_background "#45a049"
+    padding (20, 10)
+    
+style confirm_prompt:
+    size 24
+    color "#ffffff"
