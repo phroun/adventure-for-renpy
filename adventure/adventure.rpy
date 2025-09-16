@@ -109,7 +109,6 @@ init -10 python:
     adventure.toolbar_icons = ["auto", "ex", "inventory"]
     adventure.toolbar_menu = "touch_only"
     adventure.toolbar_inventory_expand = True # one button per item? False = bag icon
-    adventure.toolbar_draw_order_reversed = False
     
     #### DO NOT MODIFY THIS FILE ####
 
@@ -2297,6 +2296,8 @@ screen adventure_toolbar():
                 metrics["toolbar_active_button_offset"] = (0, 0)
             if not "toolbar_inactive_button_offset" in metrics:
                 metrics["toolbar_inactive_button_offset"] = (0, 0)
+            if not "toolbar_draw_order_reversed" in metrics:
+                metrics["toolbar_draw_order_reversed"] = False
 
             vertical_padding = (metrics["toolbar_top_padding"] + metrics["toolbar_bottom_padding"]);
             horizontal_padding = (metrics["toolbar_left_padding"] + metrics["toolbar_right_padding"]);
@@ -2368,6 +2369,10 @@ screen adventure_toolbar():
                 # where we begin drawing icons in drawing order
                 toolbar_start_x = toolbar_x + toolbar_left_pad
                 toolbar_start_y = toolbar_y + toolbar_top_pad
+                # <if>
+                if metrics["toolbar_draw_order_reversed"]:
+                    toolbar_start_y += toolbar_length - icon_length - length_padding
+                # </if>
                 toolbar_inc_x = 0
                 toolbar_inc_y = icon_length + toolbar_spacing
             else:
@@ -2385,6 +2390,10 @@ screen adventure_toolbar():
                 )
                 toolbar_start_x = toolbar_x + toolbar_left_pad
                 toolbar_start_y = toolbar_y + toolbar_top_pad
+                # <if>
+                if metrics["toolbar_draw_order_reversed"]:
+                    toolbar_start_x += toolbar_length - icon_length - length_padding
+                # </if>
                 toolbar_inc_x = icon_length + toolbar_spacing
                 toolbar_inc_y = 0
             # </if>
@@ -2403,7 +2412,7 @@ screen adventure_toolbar():
         # </frame>
 
         # <for>
-        for icon in valid_icons:
+        for icon in (reversed(valid_icons) if metrics["toolbar_draw_order_reversed"] else valid_icons):
             # <python>
             python:
                 status = "active" if icon == adventure.active_tool else "inactive"
@@ -2433,12 +2442,17 @@ screen adventure_toolbar():
                 action Function(adventure_set_tool, icon)
             # <python>
             python:
-                this_x += toolbar_inc_x
-                this_y += toolbar_inc_y
+                # <if>
+                if metrics["toolbar_draw_order_reversed"]:
+                    this_x -= toolbar_inc_x
+                    this_y -= toolbar_inc_y
+                else:
+                    this_x += toolbar_inc_x
+                    this_y += toolbar_inc_y
+                # </if>
             # </python>
         # </for>
 
-        # adventure.toolbar_draw_order_reversed = False
     # </if valid toolbar position>
 # </screen>
 
