@@ -2664,7 +2664,7 @@ screen adventure_icon_prompt(question, icon_options, iconpadding=20, labelpaddin
     if not iconheight:
         $ iconheight = iconwidth
     if not iconpadding:
-        $ iconpadding = 22
+        $ iconpadding = 42
     if not labelheight:
         $ labelheight = 30
     if not labelpadding:
@@ -2675,7 +2675,7 @@ screen adventure_icon_prompt(question, icon_options, iconpadding=20, labelpaddin
     # Main container
     # <frame>
     frame:
-        background AdventureNineSlice("adventure/images/choice-frame.png")
+        background AdventureNineSliceFrame(adventure.confirm_frame, matrixcolor=AdventureThemeColorizeMatrix(gui.accent_color), bgzoom=0.6)
         xalign 0.5
         yalign 0.5
         xpadding 40
