@@ -16,7 +16,7 @@
 ## How to Get Started
 
 We are developing a series of step-by-step guides and articles pertaining to Adventure Game development on our blog at
-https://adventure-for-renpy.blogspot.com/](https://adventure-for-renpy.blogspot.com/)
+[https://adventure-for-renpy.blogspot.com/](https://adventure-for-renpy.blogspot.com/)
 
 ## Features
 
