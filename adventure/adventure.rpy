@@ -2296,9 +2296,12 @@ screen adventure_toolbar():
                 metrics["toolbar_active_button_offset"] = (0, 0)
             if not "toolbar_inactive_button_offset" in metrics:
                 metrics["toolbar_inactive_button_offset"] = (0, 0)
-            if not "toolbar_draw_order_reversed" in metrics:
-                metrics["toolbar_draw_order_reversed"] = False
+            if not "toolbar_draw_order_vertical_reversed" in metrics:
+                metrics["toolbar_draw_order_vertical_reversed"] = False
+            if not "toolbar_draw_order_horizontal_reversed" in metrics:
+                metrics["toolbar_draw_order_horizontal_reversed"] = False
 
+            order_reversed = False
             vertical_padding = (metrics["toolbar_top_padding"] + metrics["toolbar_bottom_padding"]);
             horizontal_padding = (metrics["toolbar_left_padding"] + metrics["toolbar_right_padding"]);
             vertical = adventure.toolbar_position in ["right", "left"]
@@ -2306,9 +2309,11 @@ screen adventure_toolbar():
             if vertical:
                 length_padding = vertical_padding
                 depth_padding = horizontal_padding
+                order_reversed = metrics["toolbar_draw_order_vertical_reversed"] == True
             else:
                 length_padding = horizontal_padding
                 depth_padding = vertical_padding
+                order_reversed = metrics["toolbar_draw_order_horizontal_reversed"] == True
             # </if>
             toolbar_length = int(length_padding * adventure.toolbar_iconzoom/0.1)
             toolbar_depth_pad = int(depth_padding * adventure.toolbar_iconzoom/0.1)
@@ -2370,7 +2375,7 @@ screen adventure_toolbar():
                 toolbar_start_x = toolbar_x + toolbar_left_pad
                 toolbar_start_y = toolbar_y + toolbar_top_pad
                 # <if>
-                if metrics["toolbar_draw_order_reversed"]:
+                if metrics["toolbar_draw_order_vertical_reversed"]:
                     toolbar_start_y += toolbar_length - icon_length - length_padding
                 # </if>
                 toolbar_inc_x = 0
@@ -2391,7 +2396,7 @@ screen adventure_toolbar():
                 toolbar_start_x = toolbar_x + toolbar_left_pad
                 toolbar_start_y = toolbar_y + toolbar_top_pad
                 # <if>
-                if metrics["toolbar_draw_order_reversed"]:
+                if metrics["toolbar_draw_order_horizontal_reversed"]:
                     toolbar_start_x += toolbar_length - icon_length - length_padding
                 # </if>
                 toolbar_inc_x = icon_length + toolbar_spacing
@@ -2412,7 +2417,7 @@ screen adventure_toolbar():
         # </frame>
 
         # <for>
-        for icon in (reversed(valid_icons) if metrics["toolbar_draw_order_reversed"] else valid_icons):
+        for icon in (reversed(valid_icons) if order_reversed else valid_icons):
             # <python>
             python:
                 status = "active" if icon == adventure.active_tool else "inactive"
@@ -2443,7 +2448,7 @@ screen adventure_toolbar():
             # <python>
             python:
                 # <if>
-                if metrics["toolbar_draw_order_reversed"]:
+                if order_reversed: 
                     this_x -= toolbar_inc_x
                     this_y -= toolbar_inc_y
                 else:

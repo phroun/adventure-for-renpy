@@ -143,6 +143,15 @@ MIT License - see [LICENSE](LICENSE) file for details.
 
 ## Changelog
 
+### 0.2.11
+- Implemented `adventure.icon_grace_radius` to expand touch/hover area of
+  verb icons when there isn't a closer matching target.
+- Fixed problems preventing web distributions from finding toolbar
+  backgrounds, toolbar metrics, and and verb icons.
+- Implemented `toolbar_draw_order_horizontal_reversed` and
+  `toolbar_draw_order_vertical_reversed` as iconset plugin metrics for
+  toolbars in need of bottom-to-top or right-to-left overlap.
+
 ### 0.2.10
 - New core Verb Icons in the "Go" Layer:
   - Go Back (Retreat)
