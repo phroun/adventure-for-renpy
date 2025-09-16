@@ -1,11 +1,12 @@
-"""
-**************************************************************************
-**
-**   adventure-editor.rpy - Editor for Adventure Module (for Ren'Py)
-**
-**   Version 0.2 revision 10
-**
-**************************************************************************
+init python:
+     """
+#*************************************************************************
+#*
+#*   adventure-editor.rpy - Editor for Adventure Module (for Ren'Py)
+#*
+#*   Version 0.2 revision 10
+#*
+#*************************************************************************
 This module is released under the MIT License:
 ==========================================================================
 
@@ -29,7 +30,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
 FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 
-**************************************************************************
+#*************************************************************************
 """
 
 define ADVENTURE_EDITOR_VERSION_MAJOR = 0

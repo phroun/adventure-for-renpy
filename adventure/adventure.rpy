@@ -1,4 +1,5 @@
-"""
+init python:
+     """
 **************************************************************************
 **
 **   adventure.rpy - Adventure Module (for Ren'Py)
@@ -2256,7 +2257,7 @@ by Jeffrey R. Day ({{a=https://ko-fi.com/F2F61JR2B4}}Donate to Support{{/a}})"""
 # </init>
 
 # <init>
-init 1500 python:  # Very late in the init process
+init 999 python:  # Very late in the init process
     ADVENTURE_NARRATOR = DynamicCharacter("adventure.narratorName")
     # <if>
     if renpy.has_screen("about"):
