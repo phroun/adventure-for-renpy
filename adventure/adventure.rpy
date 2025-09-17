@@ -4,7 +4,7 @@ init python:
 **
 **   adventure.rpy - Adventure Module (for Ren'Py)
 **
-**   Version 0.2 revision 10
+**   Version 0.2 revision 12
 **
 **************************************************************************
 This module is released under the MIT License:
@@ -35,7 +35,7 @@ DEALINGS IN THE SOFTWARE.
 
 define ADVENTURE_VERSION_MAJOR = 0
 define ADVENTURE_VERSION_MINOR = 2
-define ADVENTURE_VERSION_REVISION = 10
+define ADVENTURE_VERSION_REVISION = 12
 
 define ADVENTURE_UNSET = "unset"
 
@@ -373,6 +373,8 @@ init -10 python:
     adventure.mousey = -1
     adventure.visibleMode = "default"
     adventure.interactableId = 0
+    adventure.hover_icon = None
+    adventure.last_hover_icon = None
     adventure.editorPos = 0
     adventure.result = ""
     adventure.lastRoom = "nowhere"
@@ -393,6 +395,7 @@ init -10 python:
     adventure.last_hint = None
     adventure.gathering_hints = False
     adventure.actions = []
+    adventure.multiToolCache = {}
     adventure.rexCache = {}
     adventure.darkThemeCache = None
 
@@ -1603,6 +1606,7 @@ init -10 python:
             this_stamp = time.time()
             waited = abs(this_stamp - adventure.last_target_stamp) > 0.1
             if (ev.type == pygame.MOUSEMOTION and waited) or ev.type in [pygame.MOUSEBUTTONDOWN, pygame.MOUSEBUTTONUP]:
+                adventure.hover_icon = None
                 adventure_fix_message()
                 adventure.last_target_stamp = this_stamp
                 adventure.last_targets = adventure.targets
@@ -1647,6 +1651,7 @@ init -10 python:
                             # <if>
                             if adventure_point_in_polygon(adventure.mousex, adventure.mousey, adventure.room[i]["points"]):
                                 adventure.targets.append((i, ""))
+                                adventure.hover_icon = None
                             # </if>
                         # </if polygon with at least 3 points>
                     # </for all polygons in room>
@@ -1655,19 +1660,25 @@ init -10 python:
                     # <for>
                     for icon in adventure.screen_icons:
                         if icon["active"] and adventure_point_in_icon(current_x, current_y, icon):
+                            adventure.hover_icon = (icon["interactableId"], icon["verb"])
                             adventure.targets = [(icon["interactableId"], icon["verb"])]
                         if len(adventure.targets) == 0 and icon["active"]:
                             icon_distance = adventure_icon_distance(current_x, current_y, icon)
                             # <if>
                             if icon_distance < adventure.icon_grace_radius and icon_distance < best_distance:
-                                best_icon = [(icon["interactableId"], icon["verb"])]
+                                best_icon = (icon["interactableId"], icon["verb"])
                                 best_distance = icon_distance
                             # </if>
                         # </if>
                     # </for>
                     # <if>
                     if len(adventure.targets) == 0 and best_icon is not None:
-                        adventure.targets = best_icon
+                        adventure.hover_icon = best_icon
+                        adventure.targets = [best_icon]
+                    # </if>
+                    # <if>
+                    if adventure.hover_icon != adventure.last_hover_icon:
+                        need_res = True
                     # </if>
                     # <if>
                     if clicking and ev.button == 1:
@@ -1852,9 +1863,20 @@ init -10 python:
                 real_icon_name = icon_name
                 if not adventure_cached_exists(icon_name):
                     real_icon_name = "adventure/images/" + adventure.iconset + "/" + adventure.verb_icons[tool][verb][0]
+                if not adventure_cached_exists(icon_name):
+                    real_icon_name = "adventure/images/free-icons/" + adventure.verb_icons[tool][verb][0]
                 adventure.iconSizes[real_icon_name] = adventure_get_image_dimensions(real_icon_name)
             # </for>
         # </for>
+
+        icon_name = adventure.images_base + "/" + adventure.iconset + "/hover-glow.png"
+        real_icon_name = icon_name
+        if not adventure_cached_exists(icon_name):
+            real_icon_name = "adventure/images/" + adventure.iconset + "/hover-glow.png"
+        if not adventure_cached_exists(icon_name):
+            real_icon_name = "adventure/images/free-icons/hover-glow.png"
+        adventure.iconSizes[real_icon_name] = adventure_get_image_dimensions(real_icon_name)
+
         icon_name = adventure.toolbar_icons_base + "/" + adventure.toolbar_iconset + "/toolbar-active.png"
         real_icon_name = icon_name
         if not adventure_cached_exists(icon_name):
@@ -2006,6 +2028,28 @@ https://ko-fi.com/jeffday
         # </for>
         return possible_nouns
     # </def adventure_apply_tag_aliases>
+    
+    # <def>
+    def adventure_multi_tools(tool):
+        # <if>
+        if not tool in adventure.multiToolCache:
+            active_tools = [tool]
+            # <if>
+            if tool in adventure.tool_verbs:
+                # <for>
+                for verb in adventure.tool_verbs[tool]:
+                    # <if>
+                    if verb.startswith('*'):
+                        active_tools.append(verb[1:])
+                    if verb.startswith('.*'):
+                        active_tools.append(verb[2:])
+                    # </if>
+                # </for>
+            # </if>
+            adventure.multiToolCache[tool] = active_tools
+        # </if>
+        return adventure.multiToolCache[tool]
+    # </def>
 
     # <def>
     def player_chooses_to(command, read_as = None):
@@ -2019,19 +2063,7 @@ https://ko-fi.com/jeffday
         cmd = cmdc.lower()
         sentences = []
 
-        active_tools = [adventure.active_tool]
-        # <if>
-        if adventure.active_tool in adventure.tool_verbs:
-            # <for>
-            for verb in adventure.tool_verbs[adventure.active_tool]:
-                # <if>
-                if verb.startswith('*'):
-                    active_tools.append(verb[1:])
-                if verb.startswith('.*'):
-                    active_tools.append(verb[2:])
-                # </if>
-            # </for>
-        # </if>
+        active_tools = adventure_multi_tools(adventure.active_tool)
 
         # <for>
         for tool in active_tools:
@@ -2582,6 +2614,19 @@ screen adventure_interaction():
                     if this_active or adventure.debug_show_inactive:
                         python:
                             real_icon_name = adventure_icon(verbimage)
+                        # <if>
+                        if adventure.hover_icon == (interactableId, this_verb):
+                            $ adventure.last_hover_icon = adventure.hover_icon
+                            $ hwidth = adventure.iconSizes[adventure_icon("hover-glow.png")][0] * adventure.iconzoom
+                            # <add>
+                            add (adventure_icon("hover-glow.png")):
+                                xpos int(x - (hwidth // 2))
+                                ypos y
+                                xanchor 0
+                                yanchor 0.5
+                                zoom (adventure.iconzoom)
+                            # </add>
+                        # </if>
                         # <add>
                         add (real_icon_name):
                             xpos int(x + xoffs)

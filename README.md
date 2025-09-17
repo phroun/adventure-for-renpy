@@ -143,6 +143,10 @@ MIT License - see [LICENSE](LICENSE) file for details.
 
 ## Changelog
 
+### 0.2.12
+- Impemented a simple cache to speed up tool verb processing.
+- Added an indicator to verb icons when in the hover state.
+
 ### 0.2.11
 - Implemented `adventure.icon_grace_radius` to expand touch/hover area of
   verb icons when there isn't a closer matching target.
