@@ -143,8 +143,9 @@ MIT License - see [LICENSE](LICENSE) file for details.
 
 ## Changelog
 
-### 0.2.13
+### 0.2.13a
 - Added render caching for PolyLines and AlphaPolygon
+- Fixed bug with matching blank tags on polygons
 
 ### 0.2.12
 - Impemented a simple cache to speed up tool verb processing.
