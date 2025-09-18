@@ -4,7 +4,7 @@ init python:
 **
 **   adventure.rpy - Adventure Module (for Ren'Py)
 **
-**   Version 0.2 revision 12
+**   Version 0.2 revision 13
 **
 **************************************************************************
 This module is released under the MIT License:
@@ -35,7 +35,7 @@ DEALINGS IN THE SOFTWARE.
 
 define ADVENTURE_VERSION_MAJOR = 0
 define ADVENTURE_VERSION_MINOR = 2
-define ADVENTURE_VERSION_REVISION = 12
+define ADVENTURE_VERSION_REVISION = 13
 
 define ADVENTURE_UNSET = "unset"
 
@@ -1604,7 +1604,7 @@ init -10 python:
             need_res = False
             # <if>
             this_stamp = time.time()
-            waited = abs(this_stamp - adventure.last_target_stamp) > 0.1
+            waited = abs(this_stamp - adventure.last_target_stamp) > 0.05
             if (ev.type == pygame.MOUSEMOTION and waited) or ev.type in [pygame.MOUSEBUTTONDOWN, pygame.MOUSEBUTTONUP]:
                 adventure.hover_icon = None
                 adventure_fix_message()
@@ -1894,7 +1894,7 @@ init -10 python:
         # <if>
         if not adventure.initialized:
             # <if>
-            if adventure.do_logging:
+            if adventure.do_logging and hasattr(gui, "history_allow_tags"):
                 gui.history_allow_tags.update({"b", "i"})
             # </lif>
             author_message_1 = """
@@ -2574,6 +2574,7 @@ screen adventure_interaction():
             for point in interactable["points"]:
                 $ x, y = point
                 $ xoffs = 0
+                $ xoffsh = 0
                 # <for>
                 for tool in tools:
                     # <if>
@@ -2604,7 +2605,38 @@ screen adventure_interaction():
                     # </for>
                     total_width += (len(icon_verb_images) - 1) * adventure.icon_padding
                     xoffs -= total_width // 2
+                    xoffsh -= total_width // 2
                 # </python>
+                # <for>
+                for i in range(len(icon_verb_images) - 1, -1, -1):
+                    $ verbimage = icon_verb_images[i]
+                    $ this_verb = icon_verbs[i]
+                    # <python>
+                    python:
+                        this_size_raw = adventure.iconSizes[adventure_icon(verbimage)]
+                        this_size = (
+                            (this_size_raw[0] * adventure.iconzoom) if this_size_raw[0] != None else 20,
+                            (this_size_raw[1] * adventure.iconzoom) if this_size_raw[1] != None else 20
+                        )
+                    # </python>
+                    # <if>
+                    if this_active or adventure.debug_show_inactive:
+                        # <if>
+                        if adventure.hover_icon == (interactableId, this_verb):
+                            $ adventure.last_hover_icon = adventure.hover_icon
+                            $ hwidth = adventure.iconSizes[adventure_icon("hover-glow.png")][0] * adventure.iconzoom
+                            # <add>
+                            add (adventure_icon("hover-glow.png")):
+                                xpos int(x + xoffsh + this_size[0] // 2 - hwidth // 2) #  - (hwidth // 2))
+                                ypos y
+                                xanchor 0
+                                yanchor 0.5
+                                zoom (adventure.iconzoom)
+                            # </add>
+                        # </if>
+                    # </if>
+                    $ xoffsh += this_size[0] + adventure.icon_padding
+                # </for>
                 # <for>
                 for i in range(len(icon_verb_images) - 1, -1, -1):
                     $ verbimage = icon_verb_images[i]
@@ -2614,19 +2646,6 @@ screen adventure_interaction():
                     if this_active or adventure.debug_show_inactive:
                         python:
                             real_icon_name = adventure_icon(verbimage)
-                        # <if>
-                        if adventure.hover_icon == (interactableId, this_verb):
-                            $ adventure.last_hover_icon = adventure.hover_icon
-                            $ hwidth = adventure.iconSizes[adventure_icon("hover-glow.png")][0] * adventure.iconzoom
-                            # <add>
-                            add (adventure_icon("hover-glow.png")):
-                                xpos int(x - (hwidth // 2))
-                                ypos y
-                                xanchor 0
-                                yanchor 0.5
-                                zoom (adventure.iconzoom)
-                            # </add>
-                        # </if>
                         # <add>
                         add (real_icon_name):
                             xpos int(x + xoffs)

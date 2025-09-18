@@ -143,6 +143,9 @@ MIT License - see [LICENSE](LICENSE) file for details.
 
 ## Changelog
 
+### 0.2.13
+- Added render caching for PolyLines and AlphaPolygon
+
 ### 0.2.12
 - Impemented a simple cache to speed up tool verb processing.
 - Added an indicator to verb icons when in the hover state.

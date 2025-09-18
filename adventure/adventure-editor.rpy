@@ -4,7 +4,7 @@ init python:
 **
 **   adventure-editor.rpy - Editor for Adventure Module (for Ren'Py)
 **
-**   Version 0.2 revision 12
+**   Version 0.2 revision 13
 **
 **************************************************************************
 This module is released under the MIT License:
@@ -35,7 +35,7 @@ DEALINGS IN THE SOFTWARE.
 
 define ADVENTURE_EDITOR_VERSION_MAJOR = 0
 define ADVENTURE_EDITOR_VERSION_MINOR = 2
-define ADVENTURE_EDITOR_VERSION_REVISION = 12
+define ADVENTURE_EDITOR_VERSION_REVISION = 13
 
 define ADVENTURE_EDITOR_TOOL_PLAY = 0
 define ADVENTURE_EDITOR_TOOL_SELECT = 1
@@ -74,6 +74,8 @@ init python:
     adventure.dragging_origin_y = 0
     adventure.dragging_start_x = 0
     adventure.dragging_start_y = 0
+    adventure.alphaPolyCache = {}
+    adventure.polyLineCache = {}
 
     # <def>
     def adventure_get_polygon_weighted_center(points, density_radius=50):
@@ -227,11 +229,12 @@ init python:
             height: Height of the displayable (optional, auto-calculated if not provided)
         """
         # <def>
-        def __init__(self, points, color, width=None, height=None):
+        def __init__(self, points, color, width=None, height=None, cacheId=None):
             super(AlphaPolygon, self).__init__()
             
             self.original_points = points
             self.color = color
+            self.cacheId = cacheId
             
             # Calculate bounds if width/height not provided
             # <if>
@@ -264,6 +267,15 @@ init python:
         
         # <def>
         def render(self, width, height, st, at):
+            # <if>
+            if self.cacheId is not None and (self.cacheId in adventure.alphaPolyCache):
+                cr = adventure.alphaPolyCache[self.cacheId]
+                # <if>
+                if cr["points"] == self.normalized_points and cr["color"] == self.color:
+                    return cr["render"]
+                # </if>
+            # </if>
+            
             # Create a render with the specified dimensions
             r = render.Render(self.width, self.height)
             
@@ -279,6 +291,15 @@ init python:
             # Blit the surface to the render
             r.blit(surf, (0, 0))
             
+            # <if>
+            if self.cacheId is not None:
+                adventure.alphaPolyCache[self.cacheId] = {
+                    "points": self.normalized_points,
+                    "color": self.color,
+                    "render": r
+                }
+            # </if>
+
             return r
         # </def>
 
@@ -655,6 +676,18 @@ init python:
             return render
         # </def render>
     # </class Line>
+
+    # <def>
+    def adventure_pygame_color(color):
+        pygame_color = color
+        # <if>
+        if isinstance(color, str):
+            pygame_color = pygame.Color(color)
+        elif len(color) == 3:
+            pygame_color = (*color, 255)
+        # </if>
+        return pygame_color
+    # </def>
     
     # <class>
     class PolyLine(renpy.Displayable):
@@ -663,17 +696,31 @@ init python:
         Automatically closes the polygon by connecting the last point to the first.
         """
         # <def>
-        def __init__(self, points, color, width, **kwargs):
-            super(PolyLine, self).__init__(**kwargs)
+        def __init__(self, points, color, line_width, cacheId=None):  # , **kwargs):
+            super(PolyLine, self).__init__() # **kwargs)
+            self.cacheId = cacheId
             self.points = points
             self.color = color
-            self.width = width
+            self.line_width = line_width
         # </def>
         
         # <def>
         def render(self, width, height, st, at):
+            # <if>
+            if self.cacheId is not None and (self.cacheId in adventure.polyLineCache):
+                cr = adventure.polyLineCache[self.cacheId]
+                # <if>
+                if cr["points"] == self.points and cr["color"] == self.color and cr["line_width"] == self.line_width:
+                    ren = cr["render"]
+                    return ren
+                # </if>
+            # </if>
+
             # Create a render surface
             render_surface = renpy.Render(width, height)
+            surf = pygame.Surface((width, height), pygame.SRCALPHA)
+            surf.fill((0, 0, 0, 0))
+            line_buffer = []
             
             # Don't draw if we have fewer than 2 points
             # <if>
@@ -686,19 +733,29 @@ init python:
             for i in range(len(self.points) - 1):
                 start_point = self.points[i]
                 end_point = self.points[i + 1]
-                line = Line(start_point, end_point, self.color, self.width)
-                line_render = renpy.render(line, width, height, st, at)
-                render_surface.blit(line_render, (0, 0))
+                pygame.draw.line(surf, adventure_pygame_color(self.color), start_point, end_point, self.line_width)
             # </for>
+
+            render_surface.blit(surf, (0, 0))
             
             # <if>
             # Close the polygon by connecting last point to first point
             if len(self.points) > 2:  # Only close if we have at least 3 points
                 last_point = self.points[-1]
                 first_point = self.points[0]
-                closing_line = Line(last_point, first_point, self.color, self.width)
-                closing_render = renpy.render(closing_line, width, height, st, at)
-                render_surface.blit(closing_render, (0, 0))
+                pygame.draw.line(surf, adventure_pygame_color(self.color), last_point, first_point, self.line_width)
+            # </if>
+
+            # <if>
+            if self.cacheId is not None:
+                if self.cacheId in adventure.polyLineCache:
+                    del adventure.polyLineCache[self.cacheId]
+                adventure.polyLineCache[self.cacheId] = {
+                    "points": self.points[:],
+                    "color": self.color,
+                    "line_width": self.line_width,
+                    "render": render_surface
+                }
             # </if>
             
             return render_surface
@@ -1200,8 +1257,8 @@ screen adventure_editor():
             # <if>
             if (i != adventure.interactableId):
                 $ this_active = adventure_check_condition(adventure.room[i]["condition"])
-                add AlphaPolygon(adventure.room[i]["points"], (0, 0, 255, 128) if this_active else (64, 64, 64, 128))
-                add PolyLine(adventure.room[i]["points"], "#0000ff" if this_active else "#666666", 2)
+                add AlphaPolygon(adventure.room[i]["points"], (0, 0, 255, 128) if this_active else (64, 64, 64, 128), cacheId=str(i)+("a" if this_active else ""))
+                add PolyLine(    adventure.room[i]["points"], "#0000ff" if this_active else "#666666", 2, cacheId=str(i)+("La" if this_active else "L"))
                 $ center_x, center_y = adventure_get_polygon_weighted_center(adventure.room[i]["points"])
                 # <text>
                 text adventure.room[i]["tag"]:
@@ -1220,10 +1277,11 @@ screen adventure_editor():
             # <if>
             if this_interactable["type"] == "polygon":
                 $ this_active = adventure_check_condition(this_interactable["condition"])
-                $ current_polygon = AlphaPolygon(this_interactable["points"], (255, 0, 0, 128) if this_active else (128, 0, 0, 128))
+                $ current_polygon = AlphaPolygon(this_interactable["points"], (255, 0, 0, 128) if this_active else (128, 0, 0, 128), cacheId=str(adventure.interactableId)+"fa" if this_active else "f")
                 # show expression current_polygon as curent_poly
                 add current_polygon
-                add PolyLine(this_interactable["points"], "#ff0000" if this_active else "#996666", 3)
+                $ this_line = PolyLine(this_interactable["points"], "#ff0000" if this_active else "#996666", 3, cacheId=str(adventure.interactableId)+("Lfa" if this_active else "Lf"))
+                add this_line
             # </if polygon>
             if this_interactable["type"] == "icon" and adventure.editorTool == ADVENTURE_EDITOR_TOOL_SELECT:
                 # <for>
