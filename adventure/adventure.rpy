@@ -1602,9 +1602,9 @@ init -10 python:
                 pass
             # </try>
             need_res = False
-            # <if>
             this_stamp = time.time()
             waited = abs(this_stamp - adventure.last_target_stamp) > 0.05
+            # <if>
             if (ev.type == pygame.MOUSEMOTION and waited) or ev.type in [pygame.MOUSEBUTTONDOWN, pygame.MOUSEBUTTONUP]:
                 adventure.hover_icon = None
                 adventure_fix_message()
@@ -1641,7 +1641,7 @@ init -10 python:
                                 layers.append(layer)
                             # </if>
                         # </for>
-                        # </if>
+                        # <if>
                         if (
                             adventure.room[i]["type"] == "polygon"
                             and (len(adventure.room[i]["points"]) > 2)
@@ -1659,9 +1659,12 @@ init -10 python:
                     best_distance = 99999
                     # <for>
                     for icon in adventure.screen_icons:
+                        # <if>
                         if icon["active"] and adventure_point_in_icon(current_x, current_y, icon):
                             adventure.hover_icon = (icon["interactableId"], icon["verb"])
                             adventure.targets = [(icon["interactableId"], icon["verb"])]
+                        # </if>
+                        # <if>
                         if len(adventure.targets) == 0 and icon["active"]:
                             icon_distance = adventure_icon_distance(current_x, current_y, icon)
                             # <if>
@@ -1682,8 +1685,9 @@ init -10 python:
                     # </if>
                     # <if>
                     if clicking and ev.button == 1:
-                        adventure.considered_targets = adventure.targets
+                        adventure.considered_targets = adventure.targets[:]
                     # </if>
+                    # <if>
                     if clicked and ev.button == 1 and adventure.targets == adventure.considered_targets:
                         adventure.target_x = adventure.mousex
                         adventure.target_y = adventure.mousey
@@ -1704,10 +1708,12 @@ init -10 python:
                                 hint = ""
                             # </if>
                         # </for>
+                        # <if>
                         if hint != adventure.last_hint:
                             adventure.last_hint = hint
                             adventure.gathering_hints = False
                             need_res = True
+                        # </if>
                     # </if>
                 # </if valid point and not modalFreeze>
             # </if MOUSEBUTTONDOWN, MOUSEBUTTONUP, or MOUSEMOTION>
@@ -2113,7 +2119,7 @@ https://ko-fi.com/jeffday
                         # </for groups>
                     # </if>
                 # </if valid tool>
-            # <for targets>
+            # </for targets>
         # </for>
         matches = []
 
@@ -2131,11 +2137,15 @@ https://ko-fi.com/jeffday
                     crem = cmdc[:-(len(noun)+1)]
                 # </if>
                 canonical_cmd = adventure_canonize_phrase(crem, adventure.verb_aliases)
+
                 # <if>
                 if canonical_cmd.lower().startswith(verb):
                     slurry = canonical_cmd[len(verb):]
-                    matches.append((verb + slurry + " " + noun, len(noun)))
-                # <if>
+                    # <if>
+                    if noun != "" or slurry == "":
+                        matches.append((verb + slurry + " " + noun, len(noun)))
+                    # </if>
+                # </if>
             # </if ends with noun>
         # </for>
 
