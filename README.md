@@ -143,6 +143,14 @@ MIT License - see [LICENSE](LICENSE) file for details.
 
 ## Changelog
 
+### 0.2.14
+- Added a read_as parameter for player_chooses_to to override hint and
+  history verbiage
+- Added attempt=True, adventure.attempt_phrase, and adventure.always_attempt
+  to make histroy verbiage uncertain for events that could fail.  By
+  default, this prefixes "attempts to" in between the pronoun and the
+  command string.
+
 ### 0.2.13a
 - Added render caching for PolyLines and AlphaPolygon
 - Fixed bug with matching blank tags on polygons
