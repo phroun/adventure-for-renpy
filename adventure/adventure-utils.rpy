@@ -1,12 +1,12 @@
 init python:
      """
-#*************************************************************************
-#*
-#*   adventure-utils.rpy - Utils for Adventure Module (for Ren'Py)
-#*
-#*   See adventure.rpy for version information.
-#*
-#*************************************************************************
+**************************************************************************
+**
+**   adventure-utils.rpy - Utils for Adventure Module (for Ren'Py)
+**
+**   See adventure.rpy for version information.
+**
+**************************************************************************
 This module is released under the MIT License:
 ==========================================================================
 

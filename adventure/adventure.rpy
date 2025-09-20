@@ -4,7 +4,7 @@ init python:
 **
 **   adventure.rpy - Adventure Module (for Ren'Py)
 **
-**   Version 0.2 revision 13
+**   Version 0.2 revision 14
 **
 **************************************************************************
 This module is released under the MIT License:
@@ -35,7 +35,7 @@ DEALINGS IN THE SOFTWARE.
 
 define ADVENTURE_VERSION_MAJOR = 0
 define ADVENTURE_VERSION_MINOR = 2
-define ADVENTURE_VERSION_REVISION = 13
+define ADVENTURE_VERSION_REVISION = 14
 
 define ADVENTURE_UNSET = "unset"
 
@@ -78,6 +78,8 @@ init -10 python:
 
     adventure.do_logging = True
     adventure.first_person = False  # False = You, True = I, None = Disabled
+    adventure.attempt_phrase = "attempt to"
+    adventure.always_attempt = False
     adventure.narratorName = ""
 
     #### DO NOT MODIFY THIS FILE ####
@@ -1699,8 +1701,8 @@ init -10 python:
                         adventure.gathering_hints = True
                         hint = ""
                         # <for>
-                        for act in adventure.actions:
-                            hint = player_chooses_to(act)
+                        for act, read_as in adventure.actions:
+                            hint = player_chooses_to(act, read_as)
                             # <if>
                             if hint != "":
                                 break
@@ -2058,10 +2060,10 @@ https://ko-fi.com/jeffday
     # </def>
 
     # <def>
-    def player_chooses_to(command, read_as = None):
+    def player_chooses_to(command, read_as=None, attempt=None):
         # <if>
         if adventure.action_collector:
-            adventure.actions.append(command)
+            adventure.actions.append((command, read_as))
             return False
         # </if>
         cmd_words = command.split()
@@ -2178,13 +2180,25 @@ https://ko-fi.com/jeffday
                 # <if>
                 if bestmatch.strip() != "":
                     adventure.matched_action = True
-                    logtext = "{b}{i}" + person + adventure_escape_renpy(bestmatch) + "{/i}{/b}"
+                    attempt_text = ""
+                    # <if>
+                    if (attempt is not None) or adventure.always_attempt:
+                        # <if>
+                        if attempt == True:
+                            attempt_text = adventure.attempt_phrase + " "
+                        elif attempt == False:
+                            attempt_text = ""
+                        else:
+                            attempt_text = attempt + " "
+                        # </if>
+                    # </if>
+                    logtext = "{b}{i}" + person + attempt_text + adventure_escape_renpy(read_as or bestmatch) + "{/i}{/b}"
                     ADVENTURE_LOG.add_history(kind="adv", what=logtext, who=ADVENTURE_LOG.name)
                 # </if>
             # </if>
             return len(matches) != 0
         else:
-            return bestmatch  # this goes to the hint collector!
+            return (read_as or bestmatch) if bestmatch != "" else bestmatch  # this goes to the hint collector!
         # </if>
     # </def>
 
