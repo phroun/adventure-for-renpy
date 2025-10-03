@@ -2,7 +2,7 @@ init python:
      """
 **************************************************************************
 **
-**   adventure-utils.rpy - Utils for Adventure Module (for Ren'Py)
+**   adventure-utils.rpy - Utils Module for Adventure (for Ren'Py)
 **
 **   See adventure.rpy for version information.
 **
@@ -30,7 +30,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
 FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 
-#*************************************************************************
+**************************************************************************
 """
 
 # <init>

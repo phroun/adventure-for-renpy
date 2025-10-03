@@ -143,6 +143,48 @@ MIT License - see [LICENSE](LICENSE) file for details.
 
 ## Changelog
 
+### 0.2.15
+- In the editor, the Tag or Index now shows in each Polygon
+- Fixed bug where points could be edited or added "underneath" the editor
+  window by clicking blank spots in it.
+- Editor now keeps track of modified state and only shows "Save" option if
+  the room data has been modified.
+- The hot reloading/autoreload option (Shift+R in Ren'Py) is now preserved
+  and temporarily disabled when room data has been modified so that an
+  auto-reload doesn't destroy the room data before it has been saved.
+- Added a title-bar button to the editor to minimize.  It can be restored by
+  either right-clicking anywhere or clicking on the already active toolbar
+  button.
+- All verb icons from all layers are now visible when in the "Condition"
+  editor mode (the question mark icon in the editor's secondary toolbar.)
+- Keyboard shortcuts are now active for the adventure toolbar.  They can be
+  configured via adventure.toolbar_keys.  By default they are mapped
+  positionally to 1, 2, 3, 4, 5, etc.
+- There is a second way to map keys called adventure.keymap that maps keys
+  to specific actions regardless of toolbar position.  Currently this only
+  supports mapping to tools, but will be expanded later.  They are now
+  mapped to the following defaults:
+  - L/E/X (for look/examine)
+  - G/M (for go/move)
+  - T (for talk/say - S is already mapped in Ren'Py to Save)
+  - U (for use/operate, - O is already mapped in Ren'Py for Console)
+  - A (for arrow/auto)
+- Introduced the adventure-time module, with its dependencies: locales.py,
+  tzdata.py, and word_numbers.py.  This will be expanded on in the future
+  but provides the following functions:
+  - adventure_story_base_locale(locale) - sets the base or "home" locale
+    where the story takes place, or at least where time and date data will
+    be measured from.  See locales.py for the list of predefined locales. 
+    You can add additional locales, if needed, in your init python section.
+  - adventure_story_base_date(date) - sets the base date which serves as the
+    origin point or "Day 1" of the story.
+  - adventure_locale() - sets the current locale
+  - adventure_get_setting() returns the base and current story time and
+    locale, including sunrise and sunset times.
+  - The locale and time features may not seem very useful yet, but this will
+    be developed further in the coming versions and it will integrate with
+    the other systems, especially flags and conditionals.
+
 ### 0.2.14
 - Added a read_as parameter for player_chooses_to to override hint and
   history verbiage

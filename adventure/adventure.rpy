@@ -4,7 +4,7 @@ init python:
 **
 **   adventure.rpy - Adventure Module (for Ren'Py)
 **
-**   Version 0.2 revision 14
+**   Version 0.2 revision 15
 **
 **************************************************************************
 This module is released under the MIT License:
@@ -35,7 +35,7 @@ DEALINGS IN THE SOFTWARE.
 
 define ADVENTURE_VERSION_MAJOR = 0
 define ADVENTURE_VERSION_MINOR = 2
-define ADVENTURE_VERSION_REVISION = 14
+define ADVENTURE_VERSION_REVISION = 15
 
 define ADVENTURE_UNSET = "unset"
 
@@ -45,6 +45,8 @@ init -10 python:
     import time
     import math
     import pygame
+    sys.path.append(os.path.join(config.gamedir, "adventure"))
+    import word_numbers as word_numbers
     import renpy.display.render as render
     from renpy.display.core import Displayable
     import math
@@ -109,8 +111,19 @@ init -10 python:
     adventure.toolbar_margin_start = 20
     adventure.toolbar_margin_end = 20
     adventure.toolbar_bg_opacity = 0.5
-    adventure.toolbar_icons = ["auto", "ex", "inventory"]
     adventure.toolbar_menu = "touch_only"
+    adventure.toolbar_icons = ["auto", "ex", "inventory"]
+    adventure.toolbar_keys = ["K_1", "K_2", "K_3", "K_4", "K_5", "K_6", "K_7", "K_8", "K_9", "K_0"]
+    adventure.keymap = {
+        "K_l": "ex",
+        "K_e": "ex",
+        "K_x": "ex",
+        "K_g": "go",
+        "K_m": "go",
+        "K_t": "say",
+        "K_u": "op",
+        "K_a": "auto",
+    }
     adventure.toolbar_inventory_expand = True # one button per item? False = bag icon
     
     #### DO NOT MODIFY THIS FILE ####
@@ -301,7 +314,10 @@ init -10 python:
          ],
          "auto": [
              "*go", "*op", "*say", ".*ex"
-         ]
+         ],
+         "all": [
+             "*go", "*op", "*say", "*ex"
+         ],
     }
 
     #### DO NOT MODIFY THIS FILE ####
@@ -400,6 +416,7 @@ init -10 python:
     adventure.multiToolCache = {}
     adventure.rexCache = {}
     adventure.darkThemeCache = None
+    adventure.over_window = False
 
     build.classify('game/adventure/adventure-editor.rpy', None)
     build.classify('game/adventure/adventure-editor.rpyc', None)
@@ -1618,18 +1635,20 @@ init -10 python:
                 adventure.mousey = y
                 current_x = adventure.mousex
                 current_y = adventure.mousey
+                adventure.over_window = False
                 # <try>
                 try:
-                    # <if>
-                    if clicked and ev.button == 1:
-                        current_handled = adventure_editor_mouse(adventure.mousex, adventure.mousey)
-                    else:
-                        current_handled = False
-                    # </if>
+                    current_handled = adventure_editor_mouse(adventure.mousex, adventure.mousey, clicked, ev)
                 except:
-                    current_handled = False
+                    current_handled = adventure.over_window
                     adventure.editing = False
                 # </try>
+                # <if>
+                if current_handled and len(adventure.targets):
+                    adventure.targets = []
+                    adventure.last_hint = ""
+                    renpy.restart_interaction()
+                # </if>
                 # <if>
                 if not current_handled and current_x > 0 and current_y > 0 and adventure.modalFreeze == 0:
                     adventure.targets = []
@@ -1898,7 +1917,7 @@ init -10 python:
     # </def>
     
     # <def>
-    def adventure_init():
+    def adventure_init(room=None):
         # <if>
         if not adventure.initialized:
             # <if>
@@ -2192,7 +2211,18 @@ https://ko-fi.com/jeffday
                             attempt_text = attempt + " "
                         # </if>
                     # </if>
-                    logtext = "{b}{i}" + person + attempt_text + adventure_escape_renpy(read_as or bestmatch) + "{/i}{/b}"
+                    logtext = person + attempt_text + adventure_escape_renpy(read_as or bestmatch)
+                    # <if>
+                    if not logtext.endswith(('."', '.”', '.’', '".', '”.', '’.', '?', '?"', '?”', '?’', '!', '!"', '!”', '!’', '"?', '”?', '’?', '"!', '”!', '’!')):
+                        # not already punctuated
+                        # <if>
+                        if logtext.endswith(('"', '”', '’')):
+                            logtext = logtext[:-1] + '.' + logtext[-1]
+                        else:
+                            logtext += '.'
+                        # </if>
+                    # </if>
+                    logtext = "{b}{i}" + logtext + "{/i}{/b}"
                     ADVENTURE_LOG.add_history(kind="adv", what=logtext, who=ADVENTURE_LOG.name)
                 # </if>
             # </if>
@@ -2239,7 +2269,18 @@ https://ko-fi.com/jeffday
     
     # <def>
     def adventure_set_tool(new_tool):
+        # <if>
+        if (new_tool == adventure.active_tool):
+            adventure.editor_hidden = False
+            renpy.restart_interaction()
+        # </if>
         adventure.active_tool = new_tool
+        adventure.last_hint = ""
+        adventure.target = []
+        adventure.screen_should_exit = True
+        adventure.mousex = -1
+        adventure.mousey = -1
+        renpy.restart_interaction()
     # <def>
 
     # <def>
@@ -2393,13 +2434,15 @@ screen adventure_toolbar():
             icon_length = icon_height if vertical else icon_width
             icon_depth = icon_width if vertical else icon_height
             toolbar_spacing = (metrics["toolbar_vertical_spacing"] if vertical else metrics["toolbar_horizontal_spacing"]) * (adventure.toolbar_iconzoom/0.1)
+            ix = 0
             # <for>
             for icon in adventure.toolbar_icons:
                 # <if>
                 if icon in adventure.tool_icons:
                     if len(valid_icons):
                         toolbar_length += toolbar_spacing
-                    valid_icons.append(icon)
+                    valid_icons.append((ix, icon))
+                    ix += 1
                     toolbar_length += icon_length
                 else:
                     pass
@@ -2472,13 +2515,30 @@ screen adventure_toolbar():
             xsize int(toolbar_width)
             ysize int(toolbar_height)
         # </frame>
+        
+        # <for>
+        for km in adventure.keymap:
+            # <python>
+            python:
+                act_type = adventure.keymap[km]
+                second_elements = [t[1] for t in valid_icons]
+            # </python>
+            # <if>
+            if act_type in second_elements:
+                key (km) action Function(adventure_set_tool, act_type)
+            # </if>
+        # </for>
 
         # <for>
-        for icon in (reversed(valid_icons) if order_reversed else valid_icons):
+        for tool_id, icon in (reversed(valid_icons) if order_reversed else valid_icons):
             # <python>
             python:
                 status = "active" if icon == adventure.active_tool else "inactive"
             # </python>
+            # <if>
+            if tool_id < len(adventure.toolbar_keys) and adventure.toolbar_keys[tool_id] is not None:
+                key (adventure.toolbar_keys[tool_id]) action Function(adventure_set_tool, icon)
+            # </if>
             add (adventure_toolbar_icon("toolbar-" + status + ".png")):
                 xpos int(this_x + metrics["toolbar_" + status + "_button_offset"][0] * adventure.toolbar_iconzoom / 0.1)
                 ypos int(this_y + metrics["toolbar_" + status + "_button_offset"][1] * adventure.toolbar_iconzoom / 0.1)
@@ -2501,7 +2561,10 @@ screen adventure_toolbar():
                 ysize int(icon_height)
                 background None
                 tooltip adventure.toolbar_hints[icon]
-                action Function(adventure_set_tool, icon)
+                # <if>
+                if not adventure.over_window:
+                    action Function(adventure_set_tool, icon)
+                # </if>
             # <python>
             python:
                 # <if>
@@ -2552,7 +2615,6 @@ screen adventure_tooltip():
 # <screen>
 screen adventure_overlay():
     use adventure_toolbar
-    use adventure_tooltip
     pass
 # </screen adventure_overlay>
 
@@ -2572,6 +2634,7 @@ screen adventure_interaction():
     use adventure_underlay
     $ adventure.screen_icons = []
     $ atool = adventure.active_tool if adventure.visibleMode == "default" else adventure.visibleMode
+    $ atool = 'all' if atool == 'condition' else atool
     $ tools = [atool]
     python:
         # <if>
@@ -2703,8 +2766,9 @@ screen adventure_interaction():
         # </if icon>
     # </for interactables>
     add adventure.mouse_position
-    use adventure_editor
     use adventure_overlay
+    use adventure_editor
+    use adventure_tooltip
 # </screen adventure_interaction>
 
 # <label>
@@ -2722,18 +2786,33 @@ label adventure_input(room):
                 renpy.return_statement(adventure.result);
             # </if>
         # </if>
-        adventure_init()
+        adventure_init(room)
         if not adventure.roomName in roomData:
             roomData[adventure.roomName] = []
         adventure.room = roomData[adventure.roomName]
         adventure.screen_should_exit = False
         adventure.result = ""
+
+        # <try>
+        try:
+            adventure_editor_room(room)
+        except:
+            pass
+        # </try>
+
     # </python>
 
     call screen adventure_interaction
 
     # <python>
     python:
+        # <try>
+        try:
+            adventure_editor_room_closed(room)
+        except Exception as e:
+            pass
+        # </try>
+
         adventure.result = _return
         # <if>
         if adventure.result == "":
